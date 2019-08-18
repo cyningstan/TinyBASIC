@@ -1,0 +1,146 @@
+TINY BASIC INTERPRETER AND COMPILER
+
+
+INTERPRETATION AND COMPILATION
+
+Both interpretation and compilation involve the tokenisation and parsing of a whole source file before execution. The interpreter will directly act out the instructions from the parse tree, while the compiler will turn it into a lower level language. There will be no line editor like traditional BASICs have.
+
+A consequence of reading in a whole source file is that line numbers are optional. Only lines that are the target of a GOTO or GOSUB require a line number. Another consequence is that the RUN, CLEAR and LIST commands of the original Tiny BASIC specification are redundant. The interpreter will start in a CLEAR state and RUN the specified program upon invocation, and the function of LIST is performed by the editor in which the source code was written.
+
+
+POSSIBLE VARIATIONS TO THE SPECIFICATION
+
+Some common variations to the specification will make the language more comfortable and entertaining to use, while not being a big extension to the "spirit" of Tiny BASIC:
+
+(1) A RND() function, as implemented by Palo Alto Tiny BASIC, will allow simple games to be written in the language, which is about all it's really good for.
+
+(2) A REM statement to allow comments in programs would aid readability. Tom Pittman's Tiny BASIC had REM. Also blank lines should be allowed for the same reason.
+
+(3) Line numbers greater than 255. Given the wordiness of some Tiny BASIC algorithms, a 255-line limit might be too restructive. Possible alternatives would be 999, 9999 and 32767.
+
+
+GENERATING THE PARSE TREE
+
+Each statement will have its own branch of the parse tree. It may be desirable to organise program lines into blocks. A block would simply be a list of statements, the first of which has a line number and the rest of which do not. I am guessing that some nodes would be better as linked lists than traditional n-child tree node structures.
+
+
+IMPLEMENTING VARIATIONS AS OPTIONAL EXTENSIONS
+
+The extensions above make the compiler/interpreter more fun to use. They could be implemented as options, however, allowing the compiler/interpreter to check for validity of programs in the original Tiny BASIC.
+
+Optional implementation of the RND() function is conceptually simple. Its exact operation should be copied from one of the early extended Tiny BASICs, which vary.
+
+REM implementation can be slightly different. The compiler can discard these lines at an early stage, allowing later stages simply to pretend that they aren't there. The same goes for blank lines. An interactive interpreter will ignore blank lines; REM statements can be truncated to blank lines. A REM statement in a program would therefore be interpreted as a lone line number, which would delete the nonexistent line.
+
+Various levels of line number compatibility can be enforced. The programmer can choose 1 or 2-byte line numbers. The compiler/interpreter can be instructed to insert missing line numbers by incrementing the last-encountered line number for each numberless line it finds. Conflicts in line numbers may be handled by (1) an error message, or (2) some automatic renumbering. Finally, the compiler/interpreter may be instructed to allow line numbers out of order, like Fortran labels.
+
+A BASIC line number or "label" field could be included in the parse tree structure in order to facilitate renumbering, although it would not be used in execution or translation.
+
+
+A SAMPLE OF POSSIBLE OPTIONS TO AIM FOR
+
+	-aN	--array=N (default=4096)
+		Maximum size of the @ array (implies -xa).
+
+	-cX	--compatibility=X
+		Preset options for compatibility
+		X=d|dobb	-nm
+		X=p|palo-alto	-nm -N32767 -lo -r1 -to -xaefilmnpqr
+		X=t|pittman	-nm -N32767 -lo -p,; -to -xrt
+
+	-em	--end=mandatory (default)
+		The END keyword is mandatory
+	-eo	--end=optional
+		The END keyword is optional
+
+	-i	--interactive
+		Input program lines at the console. (*)
+
+	-lm	--let=mandatory (default)
+		The LET keyword is mandatory
+	-lo	--let=optional
+		The LET keyword is optional
+
+	-nm	--line-numbers=mandatory
+		All line numbers must be supplied, in ascending order.
+	-ni	--line-numbers=implied
+		Missing line numbers are implied but must fit into order.
+	-no	--line-numbers=optional		(default)
+		Line numbers are just unordered, optional, numeric labels.
+	-NN	--line-number-limit=N		(default=255)
+		Highest line number allowed
+
+	-pX	--print-separators=X (default=,)
+		Characters that separate expressions in a PRINT list
+
+	-rN	--rand-base=N (default=0)
+		Lowest number for the RND function
+
+	-sX	--separator (default ;)
+		Statement separator (implies -xm)
+
+	-tm	--then=mandatory (default)
+		The THEN keyword is required in IF statements.
+	-to	--then=optional
+		The THEN keyword is not required in IF statements.
+
+	-xX...	--extensions=X
+		X=a|array: The @ array is supported (**)
+		X=A|abs: the ABS function is implemented
+		X=e|relational: <=> allowed in expressions(***)
+		X=f|for: FOR/NEXT loops are supported
+		X=l|let: LET can be chained as LET a=b,c=d...
+		X=m|multi: multiple statements per line allowed
+		X=n|input: INPUT allows prompts using string arguments
+		X=p|print-format: PRINT extension for numeric formatting
+		X=q|quotes: single quotes are accepted in place of double
+		X=r|rem: comments are allowed
+		X=R|rnd: the RND function is implemented
+		X=t|print-list: PRINT extension for list formatting
+
+	(*)	Supports CLEAR/LIST/RUN commands. END quits.
+	(**)	Also allows the intrinsic SIZE for the array size.
+	(***)	Therefore allows more fluid expressions in an IF statement.
+
+The --extensions option is getting a bit unwieldy. It may not be necessary to atomise the various extensions in this way, but instead just use --compatibility option and select the appropriate extensions internally. This depends upon how many different variants/variations there are, and on how desirable it is that everyone can define their own Tiny BASIC.
+
+
+POSSIBLE SUPPORT FOR IMMEDIATE COMMANDS
+
+The original SPEC supports the use of CLEAR, RUN and LIST commands within programs. If it proves to be necessary, they can be supported in the interpreter and compiler in the following way:
+
+CLEAR: since the program would be cleared from memory, this can be interpreted in the same way as END for the non-interactive interpreter and compiler. In the interactive system, CLEAR within a program can also erase the program.
+
+RUN: Since variables are not cleared as standard, this is equivalent to a GOTO to the first line of the program.
+
+LIST: In the compiler, this should produce blank output. In the non-interactive interpreter, it could simply "cat" the source file, as long as the file can still be loaded. In the interactive interpreter, this will give a proper listing.
+
+
+AS IT GETS BIGGER
+
+The parser is growing and it's becoming difficult to find stuff. Perhaps it's worth splitting things up and reorganising things a bit while I can still keep track of what's going on.
+
+Possible scheme:
+- tokeniser.c/.h for the tokeniser
+- token.c/.h for the tokens themselves
+- parser.c/.h for the parser
+- statement.c/.h for the statement node, possibly split further into:
+  - letstatement.c/.h - each statement may benefit from its own source
+  - ifstatement.c/.h
+  - gotostatement.c/.h
+  - gosubstatement.c/.h
+  - returnstatement.c/.h
+  - endstatement.c/.h
+  - printstatement.c/.h
+  - inputstatement.c/.h
+  - expression.c/.h - for expressions and parts thereof
+  - variable.c/.h - this might be going too far
+  - label.c/.h - handling of a label index for quick GOTO/GOSUB
+- tiny.c/.h for the compiler/interpreter
+
+Should the "statement" source files handle all of:
+- creation?
+- destruction?
+- parsing?
+- direct execution?
+- code translation?
