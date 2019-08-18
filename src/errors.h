@@ -27,5 +27,23 @@ typedef enum {
 } ErrorCode;
 
 
+/*
+ * Record an error encountered
+ * globals:
+ *   ErrorCode   error       the last error encountered
+ * params:
+ *   ErrorCode   new_error   the error code to set
+ */
+void errors_set_code (ErrorCode new_error);
+
+/*
+ * Return the last error encountered
+ * globals:
+ *   ErrorCode   error       the last error encountered
+ * returns:
+ *   ErrorCode               the last error encountered
+ */
+ErrorCode errors_get_code (void);
+
 
 #endif

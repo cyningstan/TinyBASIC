@@ -1,5 +1,5 @@
 /*
- * Tiny BASIC
+ * Tiny BASIC Interpreter and Compiler Project
  * Parser module
  *
  * Copyright (C) Damian Gareth Walker 2019
@@ -13,6 +13,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "errors.h"
+#include "options.h"
 #include "token.h"
 #include "tokeniser.h"
 #include "parser.h"
@@ -25,11 +26,8 @@
 
 
 /* global variables */
-static LanguageOptions options; /* language options */
 static int last_label = 0; /* last line label encountered */
-//static int source_line = 0; /* line of source from which the last token came */
 static FILE *input; /* the input file */
-static ErrorCode error = E_NONE; /* error condition */
 static Token *stored_token = NULL; /* token read ahead */
 
 
@@ -128,13 +126,11 @@ ExpressionNode *parse_expression (void) {
 /*
  * Calculate numeric line label according to language options.
  * This will be used if the line has no label specified.
- * globals:
- *   LanguageOptions   options   the language options selected
  * returns:
  *   int                         numeric line label
  */
 int generate_default_label (void) {
-  if (options.line_numbers == LINE_NUMBERS_IMPLIED)
+  if (options_get ().line_numbers == LINE_NUMBERS_IMPLIED)
     return last_label + 1;
   else
     return 0;
@@ -143,8 +139,6 @@ int generate_default_label (void) {
 
 /*
  * Validate a line label according to the language options
- * globals:
- *   LanguageOptions   options   the language options selected
  * params:
  *   int               label     the numeric label to verify.
  * returns:
@@ -153,15 +147,16 @@ int generate_default_label (void) {
 int validate_line_label (int label) {
 
   /* line labels should be non-negative and within the set limit */
-  if (label < 0 || label > options.line_limit)
+  if (label < 0 || label > options_get ().line_limit)
     return 0;
 
   /* line labels should be non-zero unless they're completely optional */
-  if (label == 0 && options.line_numbers != LINE_NUMBERS_OPTIONAL)
+  if (label == 0 && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
     return 0;
 
   /* line labels should be ascending unless they're completely optional */
-  if (label <= last_label && options.line_numbers != LINE_NUMBERS_OPTIONAL)
+  if (label <= last_label
+    && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
     return 0;
 
   /* if all the above tests passed, the line label is valid */
@@ -270,14 +265,14 @@ void parse_let_statement (StatementNode *statement) {
   /* see what variable we're assigning */
   token = get_token_to_parse ();
   if (token->class != TOKEN_WORD) {
-    error = E_INVALID_VARIABLE;
+    errors_set_code (E_INVALID_VARIABLE);
     return;
   } else if (strlen (token->content) != 1) {
-    error = E_INVALID_VARIABLE;
+    errors_set_code (E_INVALID_VARIABLE);
     return;
   } else if (toupper (*token->content) < 'A'
     || toupper (*token->content) > 'Z') {
-    error = E_INVALID_VARIABLE;
+    errors_set_code (E_INVALID_VARIABLE);
     return;
   }
   statement->statement.letn->variable = toupper(*token->content) - 'A' + 1;
@@ -286,17 +281,17 @@ void parse_let_statement (StatementNode *statement) {
   token_destroy (token);
   token = get_token_to_parse ();
   if (token->class != TOKEN_SYMBOL) {
-    error = E_INVALID_ASSIGNMENT;
+    errors_set_code (E_INVALID_ASSIGNMENT);
     return;
   } else if (strcmp (token->content, "=")) {
-    error = E_INVALID_ASSIGNMENT;
+    errors_set_code (E_INVALID_ASSIGNMENT);
     return;
   }
 
   /* get the expression */
   statement->statement.letn->expression = parse_expression ();
   if (! statement->statement.letn->expression)
-    error = E_INVALID_EXPRESSION;
+    errors_set_code (E_INVALID_EXPRESSION);
 }
 
 
@@ -318,23 +313,8 @@ void destroy_let_statement (LetStatementNode *letn) {
 
 
 /*
- * Simple setter function for the language options.
- * These will have been assembled from command line, environment,
- * configs, etc. by the main program.
- * globals:
- *   LanguageOptions   options         options stored in this module.
- * params:
- *   LanguageOptions   input_options   options passed from the main program.
- */
-void set_language_options (LanguageOptions input_options) {
-  options = input_options;
-}
-
-/*
  * Parse a single statement from the source file.
  * globals:
- *   LanguageOptions   options         options stored in this module.
- *   ErrorCode        error           last error encountered.
  *   Token             *stored_token   a token already pre-read.
  *   int               last_label      last line label used.
  * params:
@@ -377,7 +357,7 @@ StatementNode *get_next_statement (FILE *fh) {
   if (validate_line_label (statement->label))
     last_label = statement->label;
   else {
-    error = E_INVALID_LINE_NUMBER;
+    errors_set_code (E_INVALID_LINE_NUMBER);
     token_destroy (token);
     statement_destroy (statement);
     return NULL;
@@ -399,7 +379,7 @@ StatementNode *get_next_statement (FILE *fh) {
     _skip_line ();
     break;
   default:
-    error = E_UNRECOGNISED_COMMAND;
+    errors_set_code (E_UNRECOGNISED_COMMAND);
     token_destroy (token);
     statement_destroy (statement);
     return NULL;
@@ -409,16 +389,4 @@ StatementNode *get_next_statement (FILE *fh) {
   if (! stored_token)
     token_destroy (token);
   return statement;
-}
-
-
-/*
- * Simple getter function to return the last error encountered
- * globals:
- *   int          error   the last error encountered while parsing.
- * return:
- *   ErrorCode           error code to return.
- */
-ErrorCode get_error (void) {
-  return error;
 }

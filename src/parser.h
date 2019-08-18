@@ -24,19 +24,6 @@ typedef struct block_node BlockNode;
  * Non-BASIC structures and types
  */
 
-/* line number options */
-typedef enum {
-  LINE_NUMBERS_OPTIONAL, /* they are optional numeric labels */
-  LINE_NUMBERS_IMPLIED, /* missing line numbers are implied */
-  LINE_NUMBERS_MANDATORY /* every line requires a number in sequence */
-} LineNumberOption;
-
-/* language options */
-typedef struct {
-  LineNumberOption line_numbers; /* mandatory, implied, optional */
-  int line_limit; /* highest line number allowed */
-} LanguageOptions;
-
 /* Block Node */
 typedef struct block_node {
   int label; /* the line number of the block */
@@ -50,17 +37,11 @@ typedef struct block_node {
  */
 
 
-/* Destructor for an ExpressionNode */
-void destroy_expression (ExpressionNode *expression);
-
 /* set the language options */
 void set_language_options (LanguageOptions input_options);
 
 /* get a statement */
 StatementNode *get_next_statement (FILE *input);
-
-/* return the last error */
-ErrorCode get_error (void);
 
 
 #endif

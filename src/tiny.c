@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "options.h"
 #include "errors.h"
 #include "tokeniser.h"
 #include "parser.h"
@@ -40,12 +41,12 @@ int main (int argc, char **argv) {
   }
 
   /* get first statement */
-  set_language_options (options);
-  while ((statement = get_next_statement (input)) && ! get_error ()) {
+  options_set (options);
+  while ((statement = get_next_statement (input)) && ! errors_get_code ()) {
     printf ("Found a statement: %5d %d\n", statement->label, statement->class);
     statement_destroy (statement);
   }
-  printf ("Error code: %d\n", get_error ());
+  printf ("Error code: %d\n", errors_get_code ());
 
   /* return success */
   return 0;
