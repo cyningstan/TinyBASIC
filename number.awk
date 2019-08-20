@@ -1,3 +1,11 @@
+#
+# Tiny BASIC Interpreter and Compiler Project
+# Script to add line numbers to a BASIC source file
+#
+# Released as Public Domain By Damian Gareth Walker 2019
+# Created: 14-Aug-2019
+#
+
 # Line numbering starts at 1 unless an alternative is specified
 BEGIN {
   n = 1;
