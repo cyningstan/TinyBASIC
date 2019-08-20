@@ -21,6 +21,15 @@
 
 
 /*
+ * Internal Function Declarations
+ */
+
+
+/* parse_expression() has a forward reference from parse_factor() */
+ExpressionNode *parse_expression (void);
+
+
+/*
  * Data Definitions
  */
 
@@ -32,7 +41,7 @@ static Token *stored_token = NULL; /* token read ahead */
 
 
 /*
- * Level 4 Parser Routines
+ * Level 5 Parser Routines
  */
 
 
@@ -59,6 +68,92 @@ Token *get_token_to_parse () {
 
 
 /*
+ * Level 4 Parser Routines
+ */
+
+
+/*
+ * Parse a factor
+ * returns:
+ *   FactorNode*   a new factor node holding the parsed data
+ */
+FactorNode *parse_factor (void) {
+
+  /* local variables */
+  Token *token; /* token to read */
+  FactorNode *factor = NULL; /* the factor we're building */
+  ExpressionNode *expression = NULL; /* any parenthesised expression */
+
+  /* initialise the factor and grab the next token */
+  factor = factor_create ();
+  token = get_token_to_parse ();
+
+  /* interpret a sign */
+  if (token->class == TOKEN_SYMBOL
+    && (! strcmp (token->content, "+")
+    || ! strcmp (token->content, "-"))) {
+    factor->sign = (*token->content == '+')
+      ? SIGN_POSITIVE
+      : SIGN_NEGATIVE;
+    token = get_token_to_parse ();
+  }
+
+  /* interpret a number */
+  if (token->class == TOKEN_NUMBER) {
+    factor->class = FACTOR_VALUE;
+    sscanf (token->content, "%d", &factor->data.value);
+  }
+
+  /* interpret a variable */
+  else if (token->class == TOKEN_WORD
+    && strlen (token->content) == 1
+    && toupper (*token->content) >= 'A'
+    && toupper (*token->content) <= 'Z') {
+    factor->class = FACTOR_VARIABLE;
+    factor->data.variable = (int) *token->content & 0x1F;
+  }
+
+  /* interpret an parenthesised expression */
+  else if (token->class == TOKEN_SYMBOL
+    && ! strcmp (token->content, "(")) {
+
+    /* if expression is valid, check for ")" and complete the factor */
+    expression = parse_expression ();
+    if (expression) {
+      token = get_token_to_parse ();
+      if (token->class == TOKEN_SYMBOL
+        && ! strcmp (token->content, ")")) {
+        factor->class = FACTOR_EXPRESSION;
+        factor->data.expression = expression;
+      } else {
+        errors_set_code (E_MISSING_RIGHT_PARENTHESIS);
+        factor_destroy (factor);
+        factor = NULL;
+        expression_destroy (expression);
+      }
+    }
+
+    /* clean up after invalid parenthesised expression */
+    else {
+      errors_set_code (E_INVALID_EXPRESSION);
+      factor_destroy (factor);
+      factor = NULL;
+    }
+  }
+
+  /* deal with other errors */
+  else {
+    errors_set_code (E_INVALID_EXPRESSION);
+    factor_destroy (factor);
+    factor = NULL;
+  }
+
+  /* return the factor */
+  return factor;
+}
+
+
+/*
  * Level 3 Parser Routines
  */
 
@@ -71,17 +166,13 @@ Token *get_token_to_parse () {
 TermNode *parse_term (void) {
 
   /* local variables */
-  Token *token; /* token to read */
   TermNode *term = NULL; /* the term we're building */
+  FactorNode *factor = NULL; /* factor detected */
 
-  /* temporary code: accept only numbers */
-  token = get_token_to_parse ();
-  if (token->class == TOKEN_NUMBER) {
+  /* temporary code to accept only a single factor */
+  if ((factor = parse_factor ())) {
     term = term_create ();
-    term->factor = factor_create ();
-    term->factor->class = FACTOR_VALUE;
-    term->factor->sign = SIGN_POSITIVE;
-    sscanf (token->content, "%d", &term->factor->data.value);
+    term->factor = factor;
     term->next = NULL;
   }
 
