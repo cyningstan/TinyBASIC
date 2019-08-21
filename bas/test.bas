@@ -1,7 +1,7 @@
-10 LET X=5
-20 LET Y=X
-30 LET Z=-Y
-40 LET A=(6)
-50 LET B=(A)
+10 LET X = 5
+20 let Y= x
+30 LET z=- Y
+40 LET a=(06)
+50 LET B= ( a )
 60 LET C=A*B
-70 LET D=C+1
+70 LET d=C+1

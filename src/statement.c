@@ -14,9 +14,6 @@
 #include <ctype.h>
 #include "statement.h"
 
-/* constants */
-#define STATEMENT_LENGTH 80 /* typical statement length */
-
 
 /*
  * Level 1 Functions
@@ -102,7 +99,7 @@ char *statement_output (StatementNode *statement) {
     *line = NULL; /* the assembled line */
 
   /* initialise the line label */
-  if (statement->label) {
+  if (statement->label)
     sprintf (label_text, "%5d ", statement->label);
   else
     strcpy (label_text, "      ");
@@ -123,13 +120,13 @@ char *statement_output (StatementNode *statement) {
     sprintf (output, "Statement type %d", statement->class);
     break;
   default:
-    output = malloc(24);
+    output = malloc (24);
     strcpy (output, "Unrecognised statement.");
   }
 
   /* combine the two */
   line = malloc (strlen (label_text) + strlen (output) + 2);
-  sprintf (line, "%s %s\n", label_text, output);
+  sprintf (line, "%s%s\n", label_text, output);
   free (output);
 
   /* return the listing line */

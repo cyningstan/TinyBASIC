@@ -27,6 +27,7 @@ int main (int argc, char **argv) {
     LINE_NUMBERS_IMPLIED,
     255
   }; /* language options */
+  char *statement_text = NULL; /* the listing output for a statement */
 
   /* give usage if argument not given */
   if (argc != 2) {
@@ -43,7 +44,10 @@ int main (int argc, char **argv) {
   /* get first statement */
   options_set (options);
   while ((statement = get_next_statement (input)) && ! errors_get_code ()) {
-    printf ("Found a statement: %5d %d\n", statement->label, statement->class);
+    if ((statement_text = statement_output (statement))) {
+      printf ("%s", statement_text);
+      free (statement_text);
+    }
     statement_destroy (statement);
   }
   printf ("Error code: %d\n", errors_get_code ());

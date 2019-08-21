@@ -346,12 +346,14 @@ void parse_let_statement (StatementNode *statement) {
 
   /* local variables */
   Token *token; /* tokens read as part of LET statement */
+  int line; /* line containing the LET token */
 
   /* initialise the statement */
   statement->class = STATEMENT_LET;
   statement->statement.letn = malloc (sizeof (LetStatementNode));
   statement->statement.letn->variable = 0;
   statement->statement.letn->expression = NULL;
+  line = tokeniser_get_line ();
 
   /* see what variable we're assigning */
   token = get_token_to_parse ();
@@ -382,6 +384,12 @@ void parse_let_statement (StatementNode *statement) {
   /* get the expression */
   statement->statement.letn->expression = parse_expression ();
   if (! statement->statement.letn->expression)
+    errors_set_code (E_INVALID_EXPRESSION);
+
+  /* check for a line end */
+  line = token->line;
+  stored_token = token = get_token_to_parse ();
+  if (token->class != TOKEN_EOF && token->line == line)
     errors_set_code (E_INVALID_EXPRESSION);
 }
 

@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "expression.h"
+#include "errors.h"
 
 
 /*
@@ -57,6 +58,53 @@ void factor_destroy (FactorNode *factor) {
     expression_destroy (factor->data.expression);
   }
   free (factor);
+}
+
+/*
+ * Output a factor
+ * params:
+ *   FactorNode*   factor   the factor to output
+ * return:
+ *   char*                  the text representation of the factor
+ */
+char *factor_output (FactorNode *factor) {
+
+  /* local variables */
+  char *factor_text = NULL, /* the text of the whole factor */
+    *factor_buffer = NULL, /* temporary buffer for prepending to factor_text */
+    *expression_text = NULL; /* the text of a subexpression */
+
+  /* work out the main factor text */
+  switch (factor->class) {
+    case FACTOR_VARIABLE:
+      factor_text = malloc (2);
+      sprintf (factor_text, "%c", factor->data.variable + 'A' - 1);
+      break;
+    case FACTOR_VALUE:
+      factor_text = malloc (7);
+      sprintf (factor_text, "%d", factor->data.value);
+      break;
+    case FACTOR_EXPRESSION:
+      if ((expression_text = expression_output (factor->data.expression))) {
+        factor_text = malloc (strlen (expression_text) + 3);
+        sprintf (factor_text, "(%s)", expression_text);
+        free (expression_text);
+      }
+      break;
+    default:
+      errors_set_code (E_INVALID_EXPRESSION);
+  }
+
+  /* apply a negative sign, if necessary */
+  if (factor_text && factor->sign == SIGN_NEGATIVE) {
+    factor_buffer = malloc (strlen (factor_text) + 2);
+    sprintf (factor_buffer, "-%s", factor_text);
+    free (factor_text);
+    factor_text = factor_buffer;
+  }
+
+  /* return the final factor representation */
+  return factor_text;
 }
 
 
@@ -132,6 +180,60 @@ void term_destroy (TermNode *term) {
 
   /* destroy the term itself */
   free (term);
+}
+
+/*
+ * Output a term
+ * params:
+ *   TermNode*   term   the term to output
+ * returns:
+ *   char*              the text representation of the term
+ */
+char *term_output (TermNode *term) {
+
+  /* local variables */
+  char
+    *term_text = NULL, /* the text of the whole term */
+    *factor_text = NULL, /* the text of each factor */
+    operator_char; /* the operator that joins the righthand factor */
+  RightHandFactor *rhfactor; /* right hand factors of the expression */
+
+  /* begin with the initial factor */
+  if ((term_text = factor_output (term->factor))) {
+    rhfactor = term->next;
+    while (! errors_get_code () && rhfactor) {
+
+      /* ascertain the operator text */
+      switch (rhfactor->op) {
+      case TERM_OPERATOR_MULTIPLY:
+        operator_char = '*';
+        break;
+      case TERM_OPERATOR_DIVIDE:
+        operator_char = '/';
+        break;
+      default:
+        errors_set_code (E_INVALID_EXPRESSION);
+        free (term_text);
+        term_text = NULL;
+      }
+
+      /* get the factor that follows the operator */
+      if (! errors_get_code ()
+        && (factor_text = factor_output (rhfactor->factor))) {
+        term_text = realloc (term_text,
+          strlen (term_text) + strlen (factor_text) + 2);
+        sprintf (term_text, "%s%c%s", term_text, operator_char, factor_text);
+        free (factor_text);
+      }
+
+      /* look for another term on the right of the expression */
+      rhfactor = rhfactor->next;
+    }
+  }
+
+  /* return the expression text */
+  return term_text;
+
 }
 
 
@@ -221,7 +323,6 @@ char *expression_output (ExpressionNode *expression) {
   /* local variables */
   char
     *expression_text = NULL, /* the text of the whole expression */
-    *new_expression_text = NULL, /* buffer for piecing together text */
     *term_text = NULL, /* the text of each term */
     operator_char; /* the operator that joins the righthand term */
   RightHandTerm *rhterm; /* right hand terms of the expression */
@@ -245,16 +346,14 @@ char *expression_output (ExpressionNode *expression) {
         expression_text = NULL;
       }
 
-      /* get the term that follows the expression */
-      if (! errors_get_code
+      /* get the terms that follow the operators */
+      if (! errors_get_code ()
         && (term_text = term_output (rhterm->term))) {
-        new_expression_text = malloc (strlen (expression_text)
-          + strlen (term_text) + 2);
-        sprintf (new_expression_text, "%s%c%s", expression_text, operator_char,
+        expression_text = realloc (expression_text,
+          strlen (expression_text) + strlen (term_text) + 2);
+        sprintf (expression_text, "%s%c%s", expression_text, operator_char,
           term_text);
-        free (expression_text);
         free (term_text);
-        expression_text = new_expression_text;
       }
 
       /* look for another term on the right of the expression */
