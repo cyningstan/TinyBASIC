@@ -29,18 +29,61 @@ Determines the handling of numeric line labels (known as line numbers in BASIC).
 Specifies the largest numeric line label allowed in the BASIC program. The default is 255. The new limit may be up to 32767.
 
 PROGRAM FORMAT
+Programs are text files loaded in on invoking tb. Each line of the file consists of an optional numeric line label, a command keyword, and the command's arguments, if it has any. Lines may be blank, or the command keyword may be REM, which denotes that the rest of the program line is a comment.
+
+That describes a program written using tb's additional features. In traditional Tiny BASIC program each line has a mandatory numeric line label, a command keyword which may not be REM, and the command's arguments. The original Tiny BASIC specification did not provide for comments or blank lines, and the numeric line labels were required by the language's interactive line editor.
+
+Note that what this manual terms "numeric line labels" are usually called "line numbers" in traditional BASIC. But since tb allows omission of these labels, errors are reported with the actual line number of the source file, which start at 1 and increment regardless of the numeric line labels in the program. It is to these source file line numbers that the term "line numbers" refers in this manual.
 
 COMMANDS
 
-EXPRESSIONS
+LET variable = expression
+Assigns a value, the result of expression, to a variable, variable. Variable must be a single letter, A-Z. Expression must evaluate to an integer in the range -32768 to 32767.
 
-MIMICKING STRUCTURE
+IF condition THEN statement
+Conditional execution. If condition is true, then statement is executed. Statement can be another IF, allowing conditions to be chained, effectively mimicking the AND operator.
+
+GOTO expression
+Transfer execution to another part of the program. Expression is evaluated, and program execution continues at the line marked with the appropriate numeric label.
+
+GOSUB expression
+Calls a subroutine. Expression is evaluated, and program execution transfers to the line marked with the appropriate label. The position of the GOSUB is remembered so that a RETURN can bring program execution back to the statement following the GOSUB.
+
+RETURN
+Return from a subroutine. Program execution returns to the statement following the GOSUB which called the present subroutine.
+
+END
+Terminates program execution.
+
+PRINT output-list
+Produces output to the console. Output-list is a list of items separated by commas. Each item can be either a string literal enclosed in double quotation marks, or a numeric expression. An end of line sequence is output at the end, so that the next PRINT statement will put its output on a new line.
+
+INPUT variable-list
+Asks for input from the console. Variable-list is a list of variable names. For each variable given, a question mark is output and the value typed by the user is stored in that variable.
+
+EXPRESSIONS
+Expressions in Tiny BASIC are purely arithmetic expressions, involving integers only. The four basic arithmetic operators are supported: multiplication (*), division (/), addition (+) and subtraction (-). Unary operators for positive (+) and negative are supported, as are parentheses for affecting the order of operations.
+
+Standard operator precedence evaluates parentheses first, then unary signs, then multiplication and division, with addition and subtraction last.
+
+CONDITIONS
+The relational operators are =, >, <, <> or ><, >=, and <=. They are not supported within arithmetic expressions, but can only be used as conditions in IF statements in the form:
+expression relational-operator expression
 
 VERSION INFORMATION
+This manual page documents tb,version 1.0.
 
 AUTHORS
+Tiny BASIC was originally designed by Dennis Allison. This implementation was written by Damian Gareth Walker.
 
-BUG REPORTS
+EXAMPLES
+Print out all of the numbers in the Fibonnaci series between 0 and 1000.
 
-COPYING PERMISSIONS
-
+    LET A=0
+    LET B=1
+    PRINT A
+100 PRINT B
+    LET B=A+B
+    LET A=B-A
+    IF B<=1000 THEN GOTO 100
+    END
