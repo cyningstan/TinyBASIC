@@ -45,8 +45,8 @@ A SAMPLE OF POSSIBLE OPTIONS TO AIM FOR
 	-cX	--compatibility=X
 		Preset options for compatibility
 		X=d|dobb	-nm
-		X=p|palo-alto	-nm -N32767 -lo -r1 -to -xaefilmnpqr
-		X=t|pittman	-nm -N32767 -lo -p,; -to -xrt
+		X=p|palo-alto	-nm -N32767 -lo -oe -r1 -to -xaefilmnpq
+		X=t|pittman	-nm -N32767 -lo -oe -p,; -to -xt
 
 	-em	--end=mandatory (default)
 		The END keyword is mandatory
@@ -69,6 +69,11 @@ A SAMPLE OF POSSIBLE OPTIONS TO AIM FOR
 		Line numbers are just unordered, optional, numeric labels.
 	-NN	--line-number-limit=N		(default=255)
 		Highest line number allowed
+
+	-od	--comments=disabled
+		Comments and blank lines are not supported.
+	-oe	--comments=enabled (default)
+		Comments and blank lines are allowed.
 
 	-pX	--print-separators=X (default=,)
 		Characters that separate expressions in a PRINT list
@@ -94,7 +99,6 @@ A SAMPLE OF POSSIBLE OPTIONS TO AIM FOR
 		X=n|input: INPUT allows prompts using string arguments
 		X=p|print-format: PRINT extension for numeric formatting
 		X=q|quotes: single quotes are accepted in place of double
-		X=r|rem: comments are allowed
 		X=R|rnd: the RND function is implemented
 		X=t|print-list: PRINT extension for list formatting
 
