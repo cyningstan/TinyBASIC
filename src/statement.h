@@ -63,7 +63,7 @@ typedef struct variable_list_node {
 
 /* Let Statement Node */
 typedef struct {
-  int variable; /* the variable to assign */
+  int variable; /* the variable to assign, 1..26 for A..Z */
   ExpressionNode *expression; /* the expression to assign to it */
 } LetStatementNode;
 
@@ -115,12 +115,12 @@ typedef struct statement_node {
   union {
     LetStatementNode *letn; /* a LET statement */
     IfStatementNode *ifn; /* an IF statement */
-    PrintStatementNode *printn; /* a PRINT statement */
-    InputStatementNode *inputn; /* an INPUT statement */
     GotoStatementNode *goton; /* a GOTO statement */
     GosubStatementNode *gosubn; /* a GOSUB statement */
     /* a RETURN statement requires no extra data */
     /* an END statement requires no extra data */
+    PrintStatementNode *printn; /* a PRINT statement */
+    InputStatementNode *inputn; /* an INPUT statement */
   } statement;
   StatementNode *next; /* the next statement */
 } StatementNode;
@@ -144,6 +144,15 @@ StatementNode *statement_create (void);
  *   StatementNode*   statement   the doomed statement
  */
 void statement_destroy (StatementNode *statement);
+
+/*
+ * Statement output
+ * params:
+ *   StatementNode*   statement   the statement to output
+ * returns:
+ *   char*                        a string containing the statement line
+ */
+char *statement_output (StatementNode *statement);
 
 
 #endif

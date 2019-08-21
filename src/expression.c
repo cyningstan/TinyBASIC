@@ -15,6 +15,15 @@
 
 
 /*
+ * Internal Function Declarations
+ */
+
+
+/* factor_output() has a forward reference to expression_output() */
+char *expression_output (ExpressionNode *expression);
+
+
+/*
  * Functions for Dealing with Factors
  */
 
@@ -200,4 +209,61 @@ void expression_destroy (ExpressionNode *expression) {
   free (expression);
 }
 
+/*
+ * Output an expression for a program listing
+ * params:
+ *   ExpressionNode*   expression   the expression to output
+ * returns:
+ *   char*                          new string containint the expression text
+ */
+char *expression_output (ExpressionNode *expression) {
+
+  /* local variables */
+  char
+    *expression_text = NULL, /* the text of the whole expression */
+    *new_expression_text = NULL, /* buffer for piecing together text */
+    *term_text = NULL, /* the text of each term */
+    operator_char; /* the operator that joins the righthand term */
+  RightHandTerm *rhterm; /* right hand terms of the expression */
+
+  /* begin with the initial term */
+  if ((expression_text = term_output (expression->term))) {
+    rhterm = expression->next;
+    while (! errors_get_code () && rhterm) {
+
+      /* ascertain the operator text */
+      switch (rhterm->op) {
+      case EXPRESSION_OPERATOR_PLUS:
+        operator_char = '+';
+        break;
+      case EXPRESSION_OPERATOR_MINUS:
+        operator_char = '-';
+        break;
+      default:
+        errors_set_code (E_INVALID_EXPRESSION);
+        free (expression_text);
+        expression_text = NULL;
+      }
+
+      /* get the term that follows the expression */
+      if (! errors_get_code
+        && (term_text = term_output (rhterm->term))) {
+        new_expression_text = malloc (strlen (expression_text)
+          + strlen (term_text) + 2);
+        sprintf (new_expression_text, "%s%c%s", expression_text, operator_char,
+          term_text);
+        free (expression_text);
+        free (term_text);
+        expression_text = new_expression_text;
+      }
+
+      /* look for another term on the right of the expression */
+      rhterm = rhterm->next;
+    }
+  }
+
+  /* return the expression text */
+  return expression_text;
+
+}
 
