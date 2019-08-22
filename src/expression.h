@@ -142,7 +142,7 @@ void term_destroy (TermNode *term);
  * returns:
  *   RightHandTerm*   the RH term of an expression
  */
-RightHandTerm *rhexpression_create (void);
+RightHandTerm *rhterm_create (void);
 
 /*
  * Recursive destructor for a right-hand term of an expression

@@ -160,6 +160,8 @@ FactorNode *parse_factor (void) {
 
 /*
  * Parse a term
+ * globals:
+ *   Token*      stored_token   the token read past the end of the term
  * returns:
  *   TermNode*   a new term node holding the parsed term
  */
@@ -168,12 +170,51 @@ TermNode *parse_term (void) {
   /* local variables */
   TermNode *term = NULL; /* the term we're building */
   FactorNode *factor = NULL; /* factor detected */
+  RightHandFactor
+    *rhptr = NULL, /* previous right-hand factor */
+    *rhfactor = NULL; /* right-hand factor detected */
+  Token *token = NULL; /* token read while looking for operator */
 
-  /* temporary code to accept only a single factor */
+  /* scan the first factor */
   if ((factor = parse_factor ())) {
     term = term_create ();
     term->factor = factor;
     term->next = NULL;
+
+    /* look for subsequent factors */
+    while ((token = get_token_to_parse ())
+      && ! errors_get_code ()
+      && token->class == TOKEN_SYMBOL
+      && strlen (token->content) == 1
+      && (*token->content == '*'
+      || *token->content == '/')) {
+
+      /* parse the sign and the factor */
+      rhfactor = rhfactor_create ();
+      rhfactor->op = *token->content == '*'
+          ? TERM_OPERATOR_MULTIPLY
+          : TERM_OPERATOR_DIVIDE;
+      if ((rhfactor->factor = parse_factor ())) {
+        rhfactor->next = NULL;
+        if (rhptr)
+          rhptr->next = rhfactor;
+        else
+          term->next = rhfactor;
+        rhptr = rhfactor;
+      }
+
+      /* set an error condition if we read a sign but not a factor */
+      else {
+        rhfactor_destroy (rhfactor);
+        errors_set_code (E_INVALID_EXPRESSION);
+      }
+
+      /* clean up token */
+      token_destroy (token);
+    }
+
+    /* we've read past the end of the term; put the token back */
+    stored_token = token;
   }
 
   /* return the evaluated term, if any */
@@ -196,12 +237,51 @@ ExpressionNode *parse_expression (void) {
   /* local variables */
   ExpressionNode *expression = NULL; /* the expression we're building */
   TermNode *term; /* term detected */
+  RightHandTerm
+    *rhterm = NULL, /* the right-hand term detected */
+    *rhptr = NULL; /* pointer to the previous right-hand term, if any */
+  Token *token; /* token read when scanning for right-hand terms */
 
-  /* temporary code: accept only a single term */
+  /* scan the first term */
   if ((term = parse_term ())) {
     expression = expression_create ();
     expression->term = term;
     expression->next = NULL;
+
+    /* look for subsequent terms */
+    while ((token = get_token_to_parse ())
+      && ! errors_get_code ()
+      && token->class == TOKEN_SYMBOL
+      && strlen (token->content) == 1
+      && (*token->content == '+'
+      || *token->content == '-')) {
+
+      /* parse the sign and the factor */
+      rhterm = rhterm_create ();
+      rhterm->op = *token->content == '+'
+          ? EXPRESSION_OPERATOR_PLUS
+          : EXPRESSION_OPERATOR_MINUS;
+      if ((rhterm->term = parse_term ())) {
+        rhterm->next = NULL;
+        if (rhptr)
+          rhptr->next = rhterm;
+        else
+          expression->next = rhterm;
+        rhptr = rhterm;
+      }
+
+      /* set an error condition if we read a sign but not a factor */
+      else {
+        rhterm_destroy (rhterm);
+        errors_set_code (E_INVALID_EXPRESSION);
+      }
+
+      /* clean up token */
+      token_destroy (token);
+    }
+
+    /* we've read past the end of the term; put the token back */
+    stored_token = token;
   }
 
   /* return the evaluated expression, if any */
