@@ -28,18 +28,25 @@ Specifies the largest numeric line label allowed in the BASIC program. The defau
 Enables or disables support for comments and blank lines in programs.
 \fIComment-options\fR can be \fBe\fR or \fBenabled\fR to supports comments and blank lines, which is the default setting.
 It can be \fBd\fR or \fBdisabled\fR to disable support for comments, which follows accurately the original Tiny BASIC specification.
+.TP
+.BR \-O " " [\fIoutput-type\fR] ", " \-\-output[=\fIoutput-type\fR]
+Specifies compilation or translation instead of interpretation, and what type of output is desired.
+Current \fIoutput\-type\fRs supported are \fBlst\fR for a formatted listing, or \fBc\fR for a C program ready to compile.
+The output filename is the same as the input filename, with an added extension the same as .\fIoutput\-type\fR.
+If the option is supplied without an \fIoutput\-type\fR, then the default is lst.
+If the option is absent altogether, then the program will be interpreted rather than compiled or translated.
 .SH PROGRAM FORMAT
 Programs are text files loaded in on invoking \fBtinybasic\fR.
 Each line of the file consists of an optional numeric line label, a command keyword, and the command's arguments, if it has any.
 Lines may be blank, or the command keyword may be REM, which denotes that the rest of the program line is a comment.
 .PP
 That describes a program written using \fBtinybasic\fR's additional features.
-In traditional Tiny BASIC program each line has a mandatory numeric line label, a command keyword which may not be REM, and the command's arguments.
+In a traditional Tiny BASIC program each line has a mandatory numeric line label, a command keyword which may not be REM, and the command's arguments.
 The original Tiny BASIC specification did not provide for comments or blank lines, and the numeric line labels were required by the language's interactive line editor.
 .PP
-Note that what this manual terms \''numeric line labels\" are usually called \''line numbers\" in traditional BASIC.
+Note that what this manual terms \'numeric line labels\' are usually called \'line numbers\' in traditional BASIC.
 But since tinybasic allows omission of these labels, errors are reported with the actual line number of the source file, which start at 1 and increment regardless of the numeric line labels in the program.
-It is to these source file line numbers that the term \''line numbers\" refers in this manual.
+It is to these source file line numbers that the term \'line numbers\' refers in this manual.
 .SH COMMANDS
 .TP
 .BR \fBLET\fR " " \fIvariable\fR = \fIexpression\fR
@@ -90,8 +97,8 @@ Unary operators for positive (\fB+\fR) and negative (\fB-\fR) are supported, as 
 Standard operator precedence evaluates parentheses first, then unary signs, then multiplication and division, with addition and subtraction last.
 .SH CONDITIONS
 The relational operators are \fB=\fR, \fB>\fR, \fB<\fR, \fB<>\fR or \fB><\fR, \fB>=\fR, and \fB<=\fR.
-They are not supported within arithmetic expressions, but can only be used as conditions in IF statements in the form:
-.BR \fIexpression\fR \fIrelational-operator\fR \fIexpression\fR
+They are not supported within arithmetic expressions, but can only be used as conditions in \fBIF\fR statements in the form:
+.BR \fIexpression\fR " " \fIrelational-operator\fR " " \fIexpression\fR
 .SH VERSION INFORMATION
 This manual page documents \fBtinybasic\fR, version 1.0.
 .SH AUTHORS
