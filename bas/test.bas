@@ -14,4 +14,5 @@
 150 PRINT "The value of H is ", h, "."
 160 END
 170 PRINT "A is not equal to B."
+175 PRINT
 180 RETURN

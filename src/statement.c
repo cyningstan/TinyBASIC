@@ -112,6 +112,58 @@ void statement_destroy_print (PrintStatementNode *printn) {
   free (printn);
 }
 
+/*
+ * PRINT statement output
+ * params:
+ *   PrintStatementNode*   printn   data for the PRINT statement
+ * returns:
+ *   char*                          the PRINT statement text
+ */
+char *statement_output_print (PrintStatementNode *printn) {
+
+  /* local variables */
+  char
+    *print_text, /* the PRINT text to be assembled */
+    *output_text = NULL; /* the text of the current output item */
+  OutputNode *output; /* the current output item */
+
+  /* initialise the PRINT statement */
+  print_text = malloc (6);
+  strcpy (print_text, "PRINT");
+
+  /* add the output items */
+  if ((output = printn->first)) {
+    do {
+
+      /* add the separator */
+      print_text = realloc (print_text, strlen (print_text) + 2);
+      strcat (print_text, output == printn->first ? " " : ",");
+
+      /* format the output item */
+      switch (output->class) {
+      case OUTPUT_STRING:
+        output_text = malloc (strlen (output->output.string) + 3);
+        sprintf (output_text, "%c%s%c", '"', output->output.string, '"');
+        break;
+      case OUTPUT_EXPRESSION:
+        output_text = expression_output (output->output.expression);
+        break;
+      }
+
+      /* add the output item */
+      print_text = realloc (print_text,
+        strlen (print_text) + strlen (output_text) + 1);
+      strcat (print_text, output_text);
+      free (output_text);
+
+    /* look for the next output item */
+    } while ((output = output->next));
+  }
+
+  /* return the assembled text */
+  return print_text;
+}
+
 
 /*
  * Top Level Functions
@@ -183,12 +235,14 @@ char *statement_output (StatementNode *statement) {
   case STATEMENT_LET:
     output = statement_output_let (statement->statement.letn);
     break;
+  case STATEMENT_PRINT:
+    output = statement_output_print (statement->statement.printn);
+    break;
   case STATEMENT_IF:
   case STATEMENT_GOTO:
   case STATEMENT_GOSUB:
   case STATEMENT_RETURN:
   case STATEMENT_END:
-  case STATEMENT_PRINT:
   case STATEMENT_INPUT:
     output = malloc (17);
     sprintf (output, "Statement type %d", statement->class);
