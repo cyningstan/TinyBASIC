@@ -125,6 +125,11 @@ typedef struct statement_node {
   StatementNode *next; /* the next statement */
 } StatementNode;
 
+/* the program */
+typedef struct {
+  StatementNode *first; /* first program statement */
+} ProgramNode;
+
 
 /*
  * Function Declarations

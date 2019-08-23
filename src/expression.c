@@ -365,4 +365,3 @@ char *expression_output (ExpressionNode *expression) {
   return expression_text;
 
 }
-

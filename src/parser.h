@@ -13,19 +13,6 @@
 
 /* pre-requisite headers */
 #include "statement.h"
-#include "expression.h"
-#include "errors.h"
-
-
-/*
- * Data Structures
- */
-
-
-/* the program */
-typedef struct {
-  StatementNode *first; /* first program statement */
-} ProgramNode;
 
 
 /*

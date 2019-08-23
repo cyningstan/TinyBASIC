@@ -13,13 +13,13 @@
 #include <string.h>
 #include "options.h"
 #include "errors.h"
-#include "tokeniser.h"
 #include "parser.h"
 #include "statement.h"
+#include "interpret.h"
 
 
 /* static variables */
-static char *input_file = NULL; /* name of the input file */
+static char *input_filename = NULL; /* name of the input file */
 static enum { /* action to take with parsed program */
   OUTPUT_INTERPRET, /* interpret the program */
   OUTPUT_LST /* output a formatted listing */
@@ -131,14 +131,53 @@ void tinybasic_options (int argc, char **argv) {
       tinybasic_option_comments (&argv[argn][9]);
 
     /* accept filename */
-    else if (! input_file)
-      input_file = argv[argn];
+    else if (! input_filename)
+      input_filename = argv[argn];
 
     /* raise an error upon illegal option */
     else
       errors_set_code (E_BAD_COMMAND_LINE);
   }
 }
+
+/*
+ * Output a formatted program listing
+ * params:
+ *   ProgramNode*   program   the program to output
+ */
+void tinybasic_output_lst (ProgramNode *program) {
+
+  /* local variables */
+  FILE *output; /* the output file */
+  char *output_filename; /* the output filename */
+  StatementNode *statement; /* a statement we're listing */
+  char *text; /* the text of a statement we're listing */
+
+  /* open the output file */
+  output_filename = malloc (strlen (input_filename) + 5);
+  sprintf (output_filename, "%s.lst", input_filename);
+  if ((output = fopen (output_filename, "w"))) {
+
+    /* write to the output file */
+    statement = program->first;
+    while (statement) {
+      text = statement_output (statement);
+      fprintf (output, "%s", text);
+      free (text);
+      statement = statement->next;
+    }
+    fclose (output);
+  }
+
+  /* deal with errors */
+  else
+    errors_set_code (E_FILE_NOT_FOUND);
+}
+
+
+/*
+ * Top Level Routine
+ */
 
 
 /*
@@ -156,21 +195,17 @@ int main (int argc, char **argv) {
   ProgramNode *program; /* the parsed program */
   ErrorCode code; /* error returned */
 
-  /* temporary local variables for program output */
-  StatementNode *statement;
-  char *text;
-
   /* interpret the command line arguments */
   tinybasic_options (argc, argv);
 
   /* give usage if filename not given */
-  if (! input_file) {
+  if (! input_filename) {
     printf ("Usage: %s [OPTIONS] INPUT-FILE\n", argv [0]);
     return 0;
   }
 
   /* otherwise attempt to open the file */
-  if (!(input = fopen (input_file, "r"))) {
+  if (!(input = fopen (input_filename, "r"))) {
     printf ("Error: cannot open file %s\n", argv [1]);
     return E_FILE_NOT_FOUND;
   }
@@ -184,13 +219,14 @@ int main (int argc, char **argv) {
     exit (code);
   }
 
-  /* run/output the program */
-  statement = program->first;
-  while (statement) {
-    text = statement_output (statement);
-    printf ("%s", text);
-    free (text);
-    statement = statement->next;
+  /* perform the desired action */
+  switch (output) {
+    case OUTPUT_INTERPRET:
+      interpret_program (program);
+      break;
+    case OUTPUT_LST:
+      tinybasic_output_lst (program);
+      break;
   }
 
   /* return success */
