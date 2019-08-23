@@ -78,6 +78,40 @@ char *statement_output_let (LetStatementNode *letn) {
   return let_text;
 }
 
+/*
+ * PRINT statement constructor
+ * returns:
+ *   PrintStatementNode*   the created PRINT statement
+ */
+PrintStatementNode *statement_create_print (void) {
+
+  /* local variables */
+  PrintStatementNode *printn; /* the created node */
+
+  /* allocate memory and assign safe defaults */
+  printn = malloc (sizeof (PrintStatementNode));
+  printn->first = NULL;
+
+  /* return the PRINT statement node */
+  return printn;
+}
+
+/*
+ * Destructor for a PRINT statement
+ * params:
+ *   PrintStatementNode   *printn   the doomed PRINT statement.
+ */
+void statement_destroy_print (PrintStatementNode *printn) {
+  OutputNode *current, *next;
+  current = printn->first;
+  while (current) {
+    next = current->next;
+    free (current);
+    current = next;
+  }
+  free (printn);
+}
+
 
 /*
  * Top Level Functions
@@ -113,6 +147,9 @@ void statement_destroy (StatementNode *statement) {
   switch (statement->class) {
     case STATEMENT_LET:
       statement_destroy_let (statement->statement.letn);
+      break;
+    case STATEMENT_PRINT:
+      statement_destroy_print (statement->statement.printn);
       break;
     default:
       break;

@@ -139,6 +139,13 @@ typedef struct statement_node {
 LetStatementNode *statement_create_let (void);
 
 /*
+ * PRINT statement constructor
+ * returns:
+ *   PrintStatementNode*   the created PRINT statement
+ */
+PrintStatementNode *statement_create_print (void);
+
+/*
  * Statement constructor
  * returns:
  *   StatementNode*   the newly-created blank statement
