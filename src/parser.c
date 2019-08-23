@@ -419,8 +419,10 @@ void _skip_line (void) {
 
 /*
  * Parse a LET statement
+ * globals:
+ *   Token*           stored_token   The token after the whole statement
  * params:
- *   StatementNode   *statement   The statement to assemble.
+ *   StatementNode*   statement      The statement to assemble.
  */
 void parse_let_statement (StatementNode *statement) {
 
@@ -430,9 +432,7 @@ void parse_let_statement (StatementNode *statement) {
 
   /* initialise the statement */
   statement->class = STATEMENT_LET;
-  statement->statement.letn = malloc (sizeof (LetStatementNode));
-  statement->statement.letn->variable = 0;
-  statement->statement.letn->expression = NULL;
+  statement->statement.letn = statement_create_let ();
   line = tokeniser_get_line ();
 
   /* see what variable we're assigning */
@@ -471,18 +471,6 @@ void parse_let_statement (StatementNode *statement) {
   stored_token = token = get_token_to_parse ();
   if (token->class != TOKEN_EOF && token->line == line)
     errors_set_code (E_INVALID_EXPRESSION);
-}
-
-
-/*
- * Destructor for a LET statement
- * params:
- *   LetStatementNode   *letn   the doomed LET statement.
- */
-void destroy_let_statement (LetStatementNode *letn) {
-  if (letn->expression)
-    expression_destroy (letn->expression);
-  free (letn);
 }
 
 
@@ -547,12 +535,12 @@ StatementNode *get_next_statement (FILE *fh) {
   case STATEMENT_LET:
     parse_let_statement (statement);
     break;
+  case STATEMENT_PRINT:
   case STATEMENT_IF:
   case STATEMENT_GOTO:
   case STATEMENT_GOSUB:
   case STATEMENT_RETURN:
   case STATEMENT_END:
-  case STATEMENT_PRINT:
   case STATEMENT_INPUT:
     statement->class = class;
     _skip_line ();

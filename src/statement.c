@@ -21,6 +21,36 @@
 
 
 /*
+ * LET statement constructor
+ * returns:
+ *   LetStatementNode*   the created LET statement
+ */
+LetStatementNode *statement_create_let (void) {
+
+  /* local variables */
+  LetStatementNode *letn; /* the created node */
+
+  /* allocate memory and assign safe defaults */
+  letn = malloc (sizeof (LetStatementNode));
+  letn->variable = 0;
+  letn->expression = NULL;
+
+  /* return the LET statement node */
+  return letn;
+}
+
+/*
+ * Destructor for a LET statement
+ * params:
+ *   LetStatementNode   *letn   the doomed LET statement.
+ */
+void statement_destroy_let (LetStatementNode *letn) {
+  if (letn->expression)
+    expression_destroy (letn->expression);
+  free (letn);
+}
+
+/*
  * LET statement output
  * params:
  *   LetStatementNode*   letn   data for the LET statement
@@ -80,7 +110,14 @@ StatementNode *statement_create (void) {
  *   StatementNode*   statement   the doomed statement
  */
 void statement_destroy (StatementNode *statement) {
-   free (statement);
+  switch (statement->class) {
+    case STATEMENT_LET:
+      statement_destroy_let (statement->statement.letn);
+      break;
+    default:
+      break;
+  }
+  free (statement);
 }
 
 /*

@@ -132,6 +132,13 @@ typedef struct statement_node {
 
 
 /*
+ * LET statement constructor
+ * returns:
+ *   LetStatementNode*   the created LET statement
+ */
+LetStatementNode *statement_create_let (void);
+
+/*
  * Statement constructor
  * returns:
  *   StatementNode*   the newly-created blank statement
