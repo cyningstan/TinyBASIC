@@ -14,7 +14,11 @@
 #include "options.h"
 
 /* global variables */
-static LanguageOptions options; /* master language options */
+static LanguageOptions options = { /* master language options */
+  LINE_NUMBERS_IMPLIED,
+  255,
+  COMMENTS_ENABLED
+};
 
 
 /*
@@ -33,7 +37,6 @@ void options_set (LanguageOptions new_options) {
   options = new_options;
 }
 
-
 /*
  * Get the language options as a group
  * globals:
@@ -44,3 +47,37 @@ void options_set (LanguageOptions new_options) {
 LanguageOptions options_get (void) {
   return options;
 }
+
+/*
+ * Set the line number option individually
+ * globals:
+ *   LanguageOptions    options        the options
+ * params:
+ *   LineNumberOption   line_numbers   line number option to set
+ */
+void options_set_line_numbers (LineNumberOption line_numbers) {
+  options.line_numbers = line_numbers;
+}
+
+/*
+ * Set the line number limit individually
+ * globals:
+ *   LanguageOptions    options        the options
+ * params:
+ *   int                line_limit     line number limit to set
+ */
+void options_set_line_limit (int line_limit) {
+  options.line_limit = line_limit;
+}
+
+/*
+ * Set the comments option individually
+ * globals:
+ *   LanguageOptions    options    the options
+ * params:
+ *   CommetOption       comments   comment option to set
+ */
+void options_set_comments (CommentOption comments) {
+  options.comments = comments;
+}
+

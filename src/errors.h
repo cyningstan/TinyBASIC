@@ -25,6 +25,8 @@ typedef enum {
   E_INVALID_EXPRESSION, /* an invalid expression was encountered */
   E_MISSING_RIGHT_PARENTHESIS, /* Encountered "(" without corresponding ")" */
   E_INVALID_PRINT_OUTPUT, /* failed to parse print output */
+  E_BAD_COMMAND_LINE, /* error on invocation */
+  E_FILE_NOT_FOUND, /* cannot open source file */
   E_LAST /* placeholder */
 } ErrorCode;
 
