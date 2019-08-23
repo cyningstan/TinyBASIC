@@ -7,7 +7,7 @@
 #
 
 # Target
-TARGET = tiny
+TARGET = tinybasic
 
 # Paths and extensions
 SRCDIR := src

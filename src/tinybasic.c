@@ -22,12 +22,14 @@
 int main (int argc, char **argv) {
 
   FILE *input; /* input file */
-  StatementNode *statement; /* statement loaded from file */
+  ProgramNode *program;
   LanguageOptions options = {
     LINE_NUMBERS_IMPLIED,
     255
   }; /* language options */
-  char *statement_text = NULL; /* the listing output for a statement */
+  ErrorCode code; /* error returned */
+  StatementNode *statement; /* statement to execute/display */
+  char *text; /* statement text to output */
 
   /* give usage if argument not given */
   if (argc != 2) {
@@ -41,16 +43,24 @@ int main (int argc, char **argv) {
     return 1;
   }
 
-  /* get first statement */
+  /* get the parse tree */
   options_set (options);
-  while ((statement = get_next_statement (input)) && ! errors_get_code ()) {
-    if ((statement_text = statement_output (statement))) {
-      printf ("%s", statement_text);
-      free (statement_text);
-    }
-    statement_destroy (statement);
+  program = parse_program (input);
+
+  /* deal with errors */
+  if ((code = errors_get_code ())) {
+    printf ("Error code: %d\n", code);
+    exit (code);
   }
-  printf ("Error code: %d\n", errors_get_code ());
+
+  /* run/output the program */
+  statement = program->first;
+  while (statement) {
+    text = statement_output (statement);
+    printf ("%s", text);
+    free (text);
+    statement = statement->next;
+  }
 
   /* return success */
   return 0;

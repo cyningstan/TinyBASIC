@@ -17,19 +17,15 @@
 #include "errors.h"
 
 
-/* Forward Declarations */
-typedef struct block_node BlockNode;
-
 /*
- * Non-BASIC structures and types
+ * Data Structures
  */
 
-/* Block Node */
-typedef struct block_node {
-  int label; /* the line number of the block */
-  StatementNode *statement; /* the first statement */
-  BlockNode *next; /* the next block */
-} BlockNode;
+
+/* the program */
+typedef struct {
+  StatementNode *first; /* first program statement */
+} ProgramNode;
 
 
 /*
@@ -37,11 +33,14 @@ typedef struct block_node {
  */
 
 
-/* set the language options */
-void set_language_options (LanguageOptions input_options);
-
-/* get a statement */
-StatementNode *get_next_statement (FILE *input);
+/*
+ * Parse the whole program
+ * params:
+ *   FILE*   input   the input file
+ * returns:
+ *   ProgramNode*    a pointer to the whole program
+ */
+ProgramNode *parse_program (FILE *input);
 
 
 #endif

@@ -502,8 +502,14 @@ void parse_print_statement (StatementNode *statement) {
   do {
     token = get_token_to_parse ();
 
+    /* process a premature end of line */
+    if (token->class == TOKEN_EOF || token->line != line) {
+      errors_set_code (E_INVALID_PRINT_OUTPUT);
+      print_done = 1;
+    }
+
     /* process a literal string */
-    if (token->class == TOKEN_STRING) {
+    else if (token->class == TOKEN_STRING) {
       nextoutput = malloc (sizeof (OutputNode));
       nextoutput->class = OUTPUT_STRING;
       nextoutput->output.string = malloc (1 + strlen (token->content));
@@ -636,4 +642,38 @@ StatementNode *get_next_statement (FILE *fh) {
   if (! stored_token)
     token_destroy (token);
   return statement;
+}
+
+
+/*
+ * Parse the whole program
+ * params:
+ *   FILE*   input   the input file
+ * returns:
+ *   ProgramNode*    a pointer to the whole program
+ */
+ProgramNode *parse_program (FILE *input) {
+
+  /* local varables */
+  ProgramNode *program; /* the stored program */
+  StatementNode
+    *previous = NULL, /* the previous statement */
+    *next; /* an interpreted statement */
+
+  /* initialise the program */
+  program = malloc (sizeof (ProgramNode));
+  program->first = NULL;
+
+  /* read statements until reaching an error or end of input */
+  while ((next = get_next_statement (input))
+    && ! errors_get_code ()) {
+    if (previous)
+      previous->next = next;
+    else
+      program->first = next;
+    previous = next;
+  }
+
+  /* return the program */
+  return program;
 }
