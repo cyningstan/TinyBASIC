@@ -184,35 +184,36 @@ void interpret_print_statement (PrintStatementNode *printn) {
 }
 
 /*
- * Interpret program starting from a particular statement
+ * Interpret program starting from a particular line
  * params:
- *   StatementNode*   statement   the starting statement
+ *   ProgramLineNode*   program_line   the starting line
  */
-void interpret_program_from (StatementNode *statement) {
+void interpret_program_from (ProgramLineNode *program_line) {
 
   /* local variables */
-  StatementNode *current; /* statement we're executing now */
+  ProgramLineNode *current; /* line we're executing now */
 
   /* main loop */
-  current = statement;
+  current = program_line;
   while (current) {
-    switch (current->class) {
+    switch (current->statement->class) {
 
       /* interpret a LET */
       case STATEMENT_LET:
-        interpret_let_statement (current->statement.letn);
+        interpret_let_statement (current->statement->statement.letn);
         current = current->next;
         break;
 
       /* interpret a PRINT */
       case STATEMENT_PRINT:
-        interpret_print_statement (current->statement.printn);
+        interpret_print_statement (current->statement->statement.printn);
         current = current->next;
         break;
 
       /* unknown statement type reached */
       default:
-        printf ("Statement type %d not implemented.\n", current->class);
+        printf ("Statement type %d not implemented.\n",
+          current->statement->class);
         current = NULL;
     }
   }

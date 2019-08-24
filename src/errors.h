@@ -27,6 +27,8 @@ typedef enum {
   E_INVALID_PRINT_OUTPUT, /* failed to parse print output */
   E_BAD_COMMAND_LINE, /* error on invocation */
   E_FILE_NOT_FOUND, /* cannot open source file */
+  E_INVALID_OPERATOR, /* unrecognised operator */
+  E_THEN_EXPECTED, /* didn't find the expected THEN after an IF */
   E_LAST /* placeholder */
 } ErrorCode;
 

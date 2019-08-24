@@ -16,11 +16,6 @@
 
 
 /*
- * Function Declarations
- */
-
-
-/*
  * Parse the whole program
  * params:
  *   FILE*   input   the input file

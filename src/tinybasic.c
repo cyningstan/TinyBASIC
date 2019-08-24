@@ -150,7 +150,7 @@ void tinybasic_output_lst (ProgramNode *program) {
   /* local variables */
   FILE *output; /* the output file */
   char *output_filename; /* the output filename */
-  StatementNode *statement; /* a statement we're listing */
+  ProgramLineNode *program_line; /* a statement we're listing */
   char *text; /* the text of a statement we're listing */
 
   /* open the output file */
@@ -159,12 +159,12 @@ void tinybasic_output_lst (ProgramNode *program) {
   if ((output = fopen (output_filename, "w"))) {
 
     /* write to the output file */
-    statement = program->first;
-    while (statement) {
-      text = statement_output (statement);
+    program_line = program->first;
+    while (program_line) {
+      text = program_line_output (program_line);
       fprintf (output, "%s", text);
       free (text);
-      statement = statement->next;
+      program_line = program_line->next;
     }
     fclose (output);
   }

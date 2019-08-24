@@ -5,3 +5,5 @@
     PRINT "Y=",Y
     LET Z=Y*X
     PRINT "Z=",Y,"*",X,"=",Z
+    IF Z=Y*X THEN PRINT "You should see this."
+    IF Z<>Y*X THEN PRINT "You shouldn't see this."

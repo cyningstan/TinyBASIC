@@ -164,6 +164,41 @@ char *statement_output_print (PrintStatementNode *printn) {
   return print_text;
 }
 
+/*
+ * IF statement constructor
+ * returns:
+ *   IfStatementNode*   the created IF statement
+ */
+IfStatementNode *statement_create_if (void) {
+
+  /* local variables */
+  IfStatementNode *ifn; /* the created node */
+
+  /* allocate memory and assign safe defaults */
+  ifn = malloc (sizeof (IfStatementNode));
+  ifn->left = ifn->right = NULL;
+  ifn->op = RELOP_EQUAL;
+  ifn->statement = NULL;
+
+  /* return the IF statement node */
+  return ifn;
+}
+
+/*
+ * IF statement destructor
+ * params:
+ *   IfStatementNode*   ifn   the doomed IF statement
+ */
+void statement_destroy_if (IfStatementNode *ifn) {
+  if (ifn->left)
+    expression_destroy (ifn->left);
+  if (ifn->right)
+    expression_destroy (ifn->right);
+  if (ifn->statement)
+    statement_destroy (ifn->statement);
+  free (ifn);
+}
+
 
 /*
  * Top Level Functions
@@ -182,9 +217,7 @@ StatementNode *statement_create (void) {
 
   /* allocate memory and set defaults */
   statement = malloc (sizeof (StatementNode));
-  statement->label = 0;
   statement->class = STATEMENT_NONE;
-  statement->next = NULL;
 
   /* return the created statement */
   return statement;
@@ -219,16 +252,7 @@ void statement_destroy (StatementNode *statement) {
 char *statement_output (StatementNode *statement) {
 
   /* local variables */
-  char
-    label_text [7], /* line label text */
-    *output = NULL, /* the rest of the output */
-    *line = NULL; /* the assembled line */
-
-  /* initialise the line label */
-  if (statement->label)
-    sprintf (label_text, "%5d ", statement->label);
-  else
-    strcpy (label_text, "      ");
+  char *output = NULL; /* the text output */
 
   /* build the statement itself */
   switch (statement->class) {
@@ -252,6 +276,78 @@ char *statement_output (StatementNode *statement) {
     strcpy (output, "Unrecognised statement.");
   }
 
+  /* return the listing line */
+  return output;
+}
+
+/*
+ * Program Line Constructor
+ * returns:
+ *   ProgramLineNode*   the new program line
+ */
+ProgramLineNode *program_line_create (void) {
+
+  /* local variables */
+  ProgramLineNode *program_line; /* the program line to create */
+
+  /* create and initialise the program line */
+  program_line = malloc (sizeof (ProgramLineNode));
+  program_line->label = 0;
+  program_line->statement = NULL;
+  program_line->next = NULL;
+
+  /* return the new program line */
+  return program_line;
+}
+
+/*
+ * Program Line Destructor
+ * params:
+ *   ProgramLineNode*   program_line   the doomed program line
+ * params:
+ *   ProgramLineNode*                  the next program line
+ */
+ProgramLineNode *program_line_destroy (ProgramLineNode *program_line) {
+
+  /* local variables */
+  ProgramLineNode *next = NULL; /* the next program line */
+
+  /* record the next line and destroy this one */
+  if (program_line) {
+    next = program_line->next;
+    if (program_line->statement)
+      statement_destroy (program_line->statement);
+    free (program_line);
+  }
+
+  /* return the line following */
+  return next;
+}
+
+/*
+ * Program Line Output
+ * params:
+ *   ProgramLineNode*   program_line   the line to output
+ * returns:
+ *   char*                             the reconstructed line
+ */
+char *program_line_output (ProgramLineNode *program_line) {
+
+  /* local variables */
+  char
+    label_text [7], /* line label text */
+    *output = NULL, /* the rest of the output */
+    *line = NULL; /* the assembled line */
+
+  /* initialise the line label */
+  if (program_line->label)
+    sprintf (label_text, "%5d ", program_line->label);
+  else
+    strcpy (label_text, "      ");
+
+  /* build the statement itself */
+  output = statement_output (program_line->statement);
+
   /* combine the two */
   line = malloc (strlen (label_text) + strlen (output) + 2);
   sprintf (line, "%s%s\n", label_text, output);
@@ -259,5 +355,39 @@ char *statement_output (StatementNode *statement) {
 
   /* return the listing line */
   return line;
+}
 
+/*
+ * Program Constructor
+ * returns:
+ *   ProgramNode*   the constructed program
+ */
+ProgramNode *program_create (void) {
+
+  /* local variables */
+  ProgramNode *program; /* new program */
+
+  /* create and initialise the program */
+  program = malloc (sizeof (program));
+  program->first = NULL;
+
+  /* return the new program */
+  return program;
+}
+
+/*
+ * Program Destructor
+ * params:
+ *   ProgramNode*   program   the doomed program
+ */
+void program_destroy (ProgramNode *program) {
+
+  /* local variables */
+  ProgramLineNode *program_line; /* the program line to destroy */
+
+  /* destroy the program lines, then the program itself */
+  program_line = program->first;
+  while (program_line)
+    program_line = program_line_destroy (program_line);
+  free (program);
 }

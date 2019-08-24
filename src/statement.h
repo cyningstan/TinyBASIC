@@ -15,6 +15,7 @@
 #include "expression.h"
 
 /* Forward Declarations */
+typedef struct program_line_node ProgramLineNode;
 typedef struct statement_node StatementNode;
 typedef struct output_node OutputNode;
 typedef struct variable_list_node VariableListNode;
@@ -110,7 +111,6 @@ typedef enum {
 
 /* Common Statement Node */
 typedef struct statement_node {
-  int label; /* line label */
   StatementClass class; /* which type of statement this is */
   union {
     LetStatementNode *letn; /* a LET statement */
@@ -122,12 +122,19 @@ typedef struct statement_node {
     PrintStatementNode *printn; /* a PRINT statement */
     InputStatementNode *inputn; /* an INPUT statement */
   } statement;
-  StatementNode *next; /* the next statement */
 } StatementNode;
+
+/* a program line */
+typedef struct program_line_node {
+  int label; /* line label */
+  StatementNode *statement; /* the current statement */
+  ProgramLineNode *next; /* the next statement */
+} ProgramLineNode;
+
 
 /* the program */
 typedef struct {
-  StatementNode *first; /* first program statement */
+  ProgramLineNode *first; /* first program statement */
 } ProgramNode;
 
 
@@ -142,6 +149,13 @@ typedef struct {
  *   LetStatementNode*   the created LET statement
  */
 LetStatementNode *statement_create_let (void);
+
+/*
+ * IF statement constructor
+ * returns:
+ *   IfStatementNode*   the created IF statement
+ */
+IfStatementNode *statement_create_if (void);
 
 /*
  * PRINT statement constructor
@@ -165,13 +179,43 @@ StatementNode *statement_create (void);
 void statement_destroy (StatementNode *statement);
 
 /*
- * Statement output
+ * Program Line Output
  * params:
- *   StatementNode*   statement   the statement to output
+ *   ProgramLineNode*   program_line   the line to output
  * returns:
- *   char*                        a string containing the statement line
+ *   char*                             the reconstructed line
  */
-char *statement_output (StatementNode *statement);
+char *program_line_output (ProgramLineNode *program_line);
+
+/*
+ * Program Line Constructor
+ * returns:
+ *   ProgramLineNode*   the new program line
+ */
+ProgramLineNode *program_line_create (void);
+
+/*
+ * Program Line Destructor
+ * params:
+ *   ProgramLineNode*   program_line   the doomed program line
+ * params:
+ *   ProgramLineNode*                  the next program line
+ */
+ProgramLineNode *program_line_destroy (ProgramLineNode *program_line);
+
+/*
+ * Program Constructor
+ * returns:
+ *   ProgramNode*   the constructed program
+ */
+ProgramNode *program_create (void);
+
+/*
+ * Program Destructor
+ * params:
+ *   ProgramNode*   program   the doomed program
+ */
+void program_destroy (ProgramNode *program);
 
 
 #endif
