@@ -25,6 +25,7 @@ void interpret_statement (StatementNode *statement);
 static ProgramNode *stored_program; /* a global copy of the program */
 static int variables[26]; /* the numeric variables */
 static int jump_label = 0; /* destination of a GOTO or GOSUB */
+static int run_ended = 0; /* set to 1 when an END is encountered */
 
 
 /*
@@ -252,6 +253,9 @@ void interpret_statement (StatementNode *statement) {
     case STATEMENT_GOTO:
       interpret_goto_statement (statement->statement.goton);
       break;
+    case STATEMENT_END:
+      run_ended = 1;
+      break;
     case STATEMENT_PRINT:
       interpret_print_statement (statement->statement.printn);
       break;
@@ -299,7 +303,7 @@ void interpret_program_from (ProgramLineNode *program_line) {
 
   /* main loop */
   current = program_line;
-  while (current && ! errors_get_code ()) {
+  while (current && ! run_ended && ! errors_get_code ()) {
     interpret_statement (current->statement);
     if (jump_label)
       current = interpret_label_search ();

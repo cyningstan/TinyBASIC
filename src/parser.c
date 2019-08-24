@@ -493,100 +493,6 @@ StatementNode *parse_let_statement (void) {
 
 
 /*
- * Parse a PRINT statement
- * globals:
- *   Token*   stored_token   The token after the whole statement
- * returns:
- *   StatementNode*          The statement assembled
- */
-StatementNode *parse_print_statement (void) {
-
-  /* local variables */
-  Token *token; /* tokens read as part of the statement */
-  StatementNode *statement; /* the statement we're building */
-  int
-    line, /* line containing the PRINT token */
-    print_done = 0; /* 1 when the end of the PRINT statement is reached */
-  OutputNode
-    *nextoutput = NULL, /* the next output node we're parsing */
-    *lastoutput = NULL; /* the last output node we parsed */
-  ExpressionNode *expression; /* a parsed expression in the output list */
-
-  /* initialise the statement */
-  statement = statement_create ();
-  statement->class = STATEMENT_PRINT;
-  statement->statement.printn = statement_create_print ();
-  line = tokeniser_get_line ();
-
-  /* main loop for parsing the output list */
-  do {
-    token = get_token_to_parse ();
-
-    /* process a premature end of line */
-    if (token->class == TOKEN_EOF || token->line != line) {
-      errors_set_code (E_INVALID_PRINT_OUTPUT);
-      statement_destroy (statement);
-      statement = NULL;
-      print_done = 1;
-    }
-
-    /* process a literal string */
-    else if (token->class == TOKEN_STRING) {
-      nextoutput = malloc (sizeof (OutputNode));
-      nextoutput->class = OUTPUT_STRING;
-      nextoutput->output.string = malloc (1 + strlen (token->content));
-      strcpy (nextoutput->output.string, token->content);
-      nextoutput->next = NULL;
-      token_destroy (token);
-    }
-
-    /* attempt to process an expression */
-    else {
-      stored_token = token;
-      if ((expression = parse_expression ())) {
-        nextoutput = malloc (sizeof (OutputNode));
-        nextoutput->class = OUTPUT_EXPRESSION;
-        nextoutput->output.expression = expression;
-        nextoutput->next = NULL;
-      } else {
-        errors_set_code (E_INVALID_PRINT_OUTPUT);
-        statement_destroy (statement);
-        statement = NULL;
-        print_done = 1;
-      }
-    }
-
-    /* add this output item to the statement and look for another */
-    if (! errors_get_code ()) {
-      if (lastoutput)
-        lastoutput->next = nextoutput;
-      else
-        statement->statement.printn->first = nextoutput;
-      lastoutput = nextoutput;
-      token = get_token_to_parse ();
-
-      /* if we meet a comma, it means there's another output item */
-      if (token->class == TOKEN_SYMBOL && ! strcmp (token->content, ","))
-        continue;
-
-      /* anything other than an EOL or EOF at this point is an error */
-      if (token->class != TOKEN_EOF && token->line == line) {
-        errors_set_code (E_INVALID_PRINT_OUTPUT);
-        statement_destroy (statement);
-        statement = NULL;
-      }
-
-      /* error or not, we're done with the PRINT statement now */
-      print_done = 1;
-      stored_token = token;
-    }
-  } while (! print_done);
-
-  /* return the assembled statement */
-  return statement;
-}
-
-/*
  * Parse an IF statement
  * globals:
  *   Token*   stored_token   The token after the whole statement
@@ -690,6 +596,133 @@ StatementNode *parse_goto_statement (void) {
   return statement;
 }
 
+/*
+ * Parse an END statement
+ * globals:
+ *   Token*   stored_token   The token after the END statement
+ * returns:
+ *   StatementNode*          The statement assembled
+ */
+StatementNode *parse_end_statement (void) {
+
+  /* local variables */
+  Token *token; /* token read to ensure the line contains only END */
+  StatementNode *statement = NULL; /* the END */
+  int line; /* line on which the END token appeared */
+
+  /* check that there's nothing on this line after the END */
+  line = tokeniser_get_line ();
+  token = get_token_to_parse ();
+  if (token->class == TOKEN_EOF || token->line > line) {
+    statement = statement_create ();
+    statement->class = STATEMENT_END;
+    stored_token = token;
+  }
+
+  /* if there is, raise an error and clean up the mess */
+  else {
+    errors_set_code (E_UNEXPECTED_PARAMETER);
+    token_destroy (token);
+  }
+
+  /* return the statement */
+  return statement;
+}
+
+/*
+ * Parse a PRINT statement
+ * globals:
+ *   Token*   stored_token   The token after the whole statement
+ * returns:
+ *   StatementNode*          The statement assembled
+ */
+StatementNode *parse_print_statement (void) {
+
+  /* local variables */
+  Token *token; /* tokens read as part of the statement */
+  StatementNode *statement; /* the statement we're building */
+  int
+    line, /* line containing the PRINT token */
+    print_done = 0; /* 1 when the end of the PRINT statement is reached */
+  OutputNode
+    *nextoutput = NULL, /* the next output node we're parsing */
+    *lastoutput = NULL; /* the last output node we parsed */
+  ExpressionNode *expression; /* a parsed expression in the output list */
+
+  /* initialise the statement */
+  statement = statement_create ();
+  statement->class = STATEMENT_PRINT;
+  statement->statement.printn = statement_create_print ();
+  line = tokeniser_get_line ();
+
+  /* main loop for parsing the output list */
+  do {
+    token = get_token_to_parse ();
+
+    /* process a premature end of line */
+    if (token->class == TOKEN_EOF || token->line != line) {
+      errors_set_code (E_INVALID_PRINT_OUTPUT);
+      statement_destroy (statement);
+      statement = NULL;
+      print_done = 1;
+    }
+
+    /* process a literal string */
+    else if (token->class == TOKEN_STRING) {
+      nextoutput = malloc (sizeof (OutputNode));
+      nextoutput->class = OUTPUT_STRING;
+      nextoutput->output.string = malloc (1 + strlen (token->content));
+      strcpy (nextoutput->output.string, token->content);
+      nextoutput->next = NULL;
+      token_destroy (token);
+    }
+
+    /* attempt to process an expression */
+    else {
+      stored_token = token;
+      if ((expression = parse_expression ())) {
+        nextoutput = malloc (sizeof (OutputNode));
+        nextoutput->class = OUTPUT_EXPRESSION;
+        nextoutput->output.expression = expression;
+        nextoutput->next = NULL;
+      } else {
+        errors_set_code (E_INVALID_PRINT_OUTPUT);
+        statement_destroy (statement);
+        statement = NULL;
+        print_done = 1;
+      }
+    }
+
+    /* add this output item to the statement and look for another */
+    if (! errors_get_code ()) {
+      if (lastoutput)
+        lastoutput->next = nextoutput;
+      else
+        statement->statement.printn->first = nextoutput;
+      lastoutput = nextoutput;
+      token = get_token_to_parse ();
+
+      /* if we meet a comma, it means there's another output item */
+      if (token->class == TOKEN_SYMBOL && ! strcmp (token->content, ","))
+        continue;
+
+      /* anything other than an EOL or EOF at this point is an error */
+      if (token->class != TOKEN_EOF && token->line == line) {
+        errors_set_code (E_INVALID_PRINT_OUTPUT);
+        statement_destroy (statement);
+        statement = NULL;
+      }
+
+      /* error or not, we're done with the PRINT statement now */
+      print_done = 1;
+      stored_token = token;
+    }
+  } while (! print_done);
+
+  /* return the assembled statement */
+  return statement;
+}
+
 
 /*
  * Level ? Routines
@@ -721,15 +754,17 @@ StatementNode *parse_statement () {
     case STATEMENT_IF:
       statement = parse_if_statement ();
       break;
-    case STATEMENT_PRINT:
-      statement = parse_print_statement ();
-      break;
     case STATEMENT_GOTO:
       statement = parse_goto_statement ();
       break;
+    case STATEMENT_END:
+      statement = parse_end_statement ();
+      break;
+    case STATEMENT_PRINT:
+      statement = parse_print_statement ();
+      break;
     case STATEMENT_GOSUB:
     case STATEMENT_RETURN:
-    case STATEMENT_END:
     case STATEMENT_INPUT:
       statement = statement_create ();
       statement->class = class;

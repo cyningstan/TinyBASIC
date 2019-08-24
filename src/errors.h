@@ -29,6 +29,7 @@ typedef enum {
   E_FILE_NOT_FOUND, /* cannot open source file */
   E_INVALID_OPERATOR, /* unrecognised operator */
   E_THEN_EXPECTED, /* didn't find the expected THEN after an IF */
+  E_UNEXPECTED_PARAMETER, /* more parameters encountered than expected */
   E_LAST /* placeholder */
 } ErrorCode;
 

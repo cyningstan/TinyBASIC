@@ -24,7 +24,7 @@ char *statement_output (StatementNode *statement);
 
 
 /*
- * Level 1 Functions
+ * LET Statement Functions
  */
 
 
@@ -85,6 +85,12 @@ char *statement_output_let (LetStatementNode *letn) {
   /* return it */
   return let_text;
 }
+
+
+/*
+ * PRINT Statement Functions
+ */
+
 
 /*
  * PRINT statement constructor
@@ -172,6 +178,12 @@ char *statement_output_print (PrintStatementNode *printn) {
   return print_text;
 }
 
+
+/*
+ * IF Statement Functions
+ */
+
+
 /*
  * IF statement constructor
  * returns:
@@ -258,6 +270,12 @@ char *statement_output_if (IfStatementNode *ifn) {
   return if_text;
 }
 
+
+/*
+ * GOTO Statement Functions
+ */
+
+
 /*
  * GOTO Statement Constructor
  * returns:
@@ -314,6 +332,17 @@ char *statement_output_goto (GotoStatementNode *goton) {
 
   /* return it */
   return goto_text;
+}
+
+
+/*
+ * END Statement Functions
+ */
+char *statement_output_end (void) {
+    char *end_text; /* the full text of the END command */
+    end_text = malloc (4);
+    strcpy (end_text, "END");
+    return end_text;
 }
 
 
@@ -385,15 +414,17 @@ char *statement_output (StatementNode *statement) {
   case STATEMENT_IF:
     output = statement_output_if (statement->statement.ifn);
     break;
-  case STATEMENT_PRINT:
-    output = statement_output_print (statement->statement.printn);
-    break;
   case STATEMENT_GOTO:
     output = statement_output_goto (statement->statement.goton);
     break;
+  case STATEMENT_END:
+    output = statement_output_end ();
+    break;
+  case STATEMENT_PRINT:
+    output = statement_output_print (statement->statement.printn);
+    break;
   case STATEMENT_GOSUB:
   case STATEMENT_RETURN:
-  case STATEMENT_END:
   case STATEMENT_INPUT:
     output = malloc (17);
     sprintf (output, "Statement type %d", statement->class);
