@@ -165,6 +165,13 @@ IfStatementNode *statement_create_if (void);
 GotoStatementNode *statement_create_goto (void);
 
 /*
+ * GOSUB Statement Constructor
+ * returns:
+ *   GosubStatementNode*   the new GOSUB statement
+ */
+GosubStatementNode *statement_create_gosub (void);
+
+/*
  * PRINT statement constructor
  * returns:
  *   PrintStatementNode*   the created PRINT statement

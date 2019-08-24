@@ -244,6 +244,70 @@ char *statement_output_goto (GotoStatementNode *goton) {
 
 
 /*
+ * GOSUB Statement Functions
+ */
+
+
+/*
+ * GOSUB Statement Constructor
+ * returns:
+ *   GosubStatementNode*   the new GOSUB statement
+ */
+GosubStatementNode *statement_create_gosub (void) {
+
+  /* local variables */
+  GosubStatementNode *gosubn; /* the statement to create */
+
+  /* create and initialise the data */
+  gosubn = malloc (sizeof (GosubStatementNode));
+  gosubn->label = NULL;
+
+  /* return the gosub statement */
+  return gosubn;
+}
+
+/*
+ * GOSUB Statement Destructor
+ * params:
+ *   GosubStatementNode*   gosubn   the doomed GOSUB statement
+ */
+void statement_destroy_gosub (GosubStatementNode *gosubn) {
+  if (gosubn) {
+    if (gosubn->label) free (gosubn->label);
+    free (gosubn);
+  }
+}
+
+/*
+ * GOSUB statement output
+ * params:
+ *   GosubStatementNode*   gosubn   data for the GOSUB statement
+ * returns:
+ *   char*                        the GOSUB statement text
+ */
+char *statement_output_gosub (GosubStatementNode *gosubn) {
+
+  /* local variables */
+  char
+    *gosub_text = NULL, /* the GOSUB text to be assembled */
+    *expression_text = NULL; /* the text of the expression */
+
+  /* assemble the expression */
+  expression_text = expression_output (gosubn->label);
+
+  /* assemble the final LET text, if we have an expression */
+  if (expression_text) {
+    gosub_text = malloc (7 + strlen (expression_text));
+    sprintf (gosub_text, "GOSUB %s", expression_text);
+    free (expression_text);
+  }
+
+  /* return it */
+  return gosub_text;
+}
+
+
+/*
  * END Statement Functions
  */
 
@@ -258,6 +322,24 @@ char *statement_output_end (void) {
     end_text = malloc (4);
     strcpy (end_text, "END");
     return end_text;
+}
+
+
+/*
+ * RETURN Statement Functions
+ */
+
+
+/*
+ * RETURN statement output
+ * returns:
+ *   char*   A new string with the text "RETURN"
+ */
+char *statement_output_return (void) {
+    char *return_text; /* the full text of the RETURN command */
+    return_text = malloc (7);
+    strcpy (return_text, "RETURN");
+    return return_text;
 }
 
 
@@ -471,11 +553,17 @@ void statement_destroy (StatementNode *statement) {
     case STATEMENT_PRINT:
       statement_destroy_print (statement->statement.printn);
       break;
+    case STATEMENT_INPUT:
+      statement_destroy_input (statement->statement.inputn);
+      break;
     case STATEMENT_IF:
       statement_destroy_if (statement->statement.ifn);
       break;
     case STATEMENT_GOTO:
       statement_destroy_goto (statement->statement.goton);
+      break;
+    case STATEMENT_GOSUB:
+      statement_destroy_gosub (statement->statement.gosubn);
       break;
     default:
       break;
@@ -506,6 +594,12 @@ char *statement_output (StatementNode *statement) {
     case STATEMENT_GOTO:
       output = statement_output_goto (statement->statement.goton);
       break;
+    case STATEMENT_GOSUB:
+      output = statement_output_gosub (statement->statement.gosubn);
+      break;
+    case STATEMENT_RETURN:
+      output = statement_output_return ();
+      break;
     case STATEMENT_END:
       output = statement_output_end ();
       break;
@@ -514,11 +608,6 @@ char *statement_output (StatementNode *statement) {
       break;
     case STATEMENT_INPUT:
       output = statement_output_input (statement->statement.inputn);
-      break;
-    case STATEMENT_GOSUB:
-    case STATEMENT_RETURN:
-      output = malloc (17);
-      sprintf (output, "Statement type %d", statement->class);
       break;
     default:
       output = malloc (24);

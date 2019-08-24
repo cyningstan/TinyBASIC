@@ -21,10 +21,23 @@ int interpret_expression (ExpressionNode *expression);
 void interpret_statement (StatementNode *statement);
 
 
+/*
+ * Data Definitions
+ */
+
+/* The GOSUB Stack */
+typedef struct gosub_stack_node GosubStackNode;
+typedef struct gosub_stack_node {
+  ProgramLineNode *program_line; /* the line following the GOSUB */
+  GosubStackNode *next; /* stack node for the previous GOSUB */
+} GosubStackNode;
+
+
 /* global variables */
 static ProgramNode *stored_program; /* a global copy of the program */
+static ProgramLineNode *current_line; /* current line we're executing */
+static GosubStackNode *gosub_stack = NULL; /* the top of the GOSUB stack */
 static int variables[26]; /* the numeric variables */
-static int jump_label = 0; /* destination of a GOTO or GOSUB */
 static int run_ended = 0; /* set to 1 when an END is encountered */
 
 
@@ -132,6 +145,32 @@ int interpret_expression (ExpressionNode *expression) {
   return result_store;
 }
 
+/*
+ * Find a program line given its label
+ * returns:
+ *   ProgramLineNode*   the program line found
+ */
+ProgramLineNode *interpret_label_search (int jump_label) {
+
+  /* local variables */
+  ProgramLineNode
+    *ptr, /* a line we're currently looking at */
+    *found = NULL; /* the line if found */
+
+  /* do the search */
+  for (ptr = stored_program->first; ptr && ! found; ptr = ptr->next)
+    if (ptr->label == jump_label)
+      found = ptr;
+    else if (ptr->label >= jump_label
+      && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
+      found = ptr;
+
+  /* check for errors and return what was found */
+  if (! found)
+    errors_set_code (E_INVALID_LINE_NUMBER);
+  return found;
+}
+
 
 /*
  * Level 1 Routines
@@ -157,6 +196,7 @@ void interpret_initialise_variables (void) {
  */
 void interpret_let_statement (LetStatementNode *letn) {
   variables[letn->variable - 1] = interpret_expression (letn->expression);
+  current_line = current_line->next;
 }
 
 /*
@@ -189,6 +229,8 @@ void interpret_if_statement (IfStatementNode *ifn) {
   /* perform the conditional statement */
   if (comparison)
     interpret_statement (ifn->statement);
+  else
+    current_line = current_line->next;
 }
 
 /*
@@ -197,16 +239,48 @@ void interpret_if_statement (IfStatementNode *ifn) {
  *   GotoStatementNode*   goton   the GOTO statement details
  */
 void interpret_goto_statement (GotoStatementNode *goton) {
+  current_line = interpret_label_search (interpret_expression (goton->label));
+}
+
+/*
+ * Interpret a GOSUB statement
+ * params:
+ *   GosubStatementNode*   gosubn   the GOSUB statement details
+ */
+void interpret_gosub_statement (GosubStatementNode *gosubn) {
 
   /* local variables */
-  int label; /* the label to jump to */
+  GosubStackNode *gosub_node; /* indicates the program line to return to */
 
-  /* store the label so we can search for it in the program */
-  label = interpret_expression (goton->label);
-  if (label)
-    jump_label = label;
+  /* create the new node on the GOSUB stack */
+  gosub_node = malloc (sizeof (GosubStackNode));
+  gosub_node->program_line = current_line->next;
+  gosub_node->next = gosub_stack;
+  gosub_stack = gosub_node;
+
+  /* branch to the subroutine requested */
+  current_line = interpret_label_search (interpret_expression (gosubn->label));
+}
+
+/*
+ * Interpret a RETURN statement
+ */
+void interpret_return_statement (void) {
+
+  /* local variables */
+  GosubStackNode *gosub_node; /* node popped off the GOSUB stack */
+
+  /* return to the statement following the most recent GOSUB */
+  if (gosub_stack) {
+    current_line = gosub_stack->program_line;
+    gosub_node = gosub_stack;
+    gosub_stack = gosub_stack->next;
+    free (gosub_node);
+  }
+
+  /* no GOSUBs led here, so raise an error */
   else
-    errors_set_code (E_INVALID_LINE_NUMBER);
+    errors_set_code (E_RETURN_WITHOUT_GOSUB);
 }
 
 /*
@@ -235,6 +309,7 @@ void interpret_print_statement (PrintStatementNode *printn) {
 
   /* print the linefeed */
   printf ("\n");
+  current_line = current_line->next;
 }
 
 /*
@@ -266,6 +341,9 @@ void interpret_input_statement (InputStatementNode *inputn) {
     variables[variable->variable - 1] = sign * value;
     variable = variable->next;
   }
+
+  /* advance to the next statement when done */
+  current_line = current_line->next;
 }
 
 
@@ -285,6 +363,12 @@ void interpret_statement (StatementNode *statement) {
     case STATEMENT_GOTO:
       interpret_goto_statement (statement->statement.goton);
       break;
+    case STATEMENT_GOSUB:
+      interpret_gosub_statement (statement->statement.gosubn);
+      break;
+    case STATEMENT_RETURN:
+      interpret_return_statement ();
+      break;
     case STATEMENT_END:
       run_ended = 1;
       break;
@@ -300,51 +384,14 @@ void interpret_statement (StatementNode *statement) {
 }
 
 /*
- * Find a program line given its label
- * returns:
- *   ProgramLineNode*   the program line found
- */
-ProgramLineNode *interpret_label_search (void) {
-
-  /* local variables */
-  ProgramLineNode
-    *ptr, /* a line we're currently looking at */
-    *found = NULL; /* the line if found */
-
-  /* do the search */
-  for (ptr = stored_program->first; ptr && ! found; ptr = ptr->next)
-    if (ptr->label == jump_label)
-      found = ptr;
-    else if (ptr->label >= jump_label
-      && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
-      found = ptr;
-
-  /* check for errors and return what was found */
-  if (! found)
-    errors_set_code (E_INVALID_LINE_NUMBER);
-  jump_label = 0;
-  return found;
-}
-
-/*
  * Interpret program starting from a particular line
  * params:
  *   ProgramLineNode*   program_line   the starting line
  */
 void interpret_program_from (ProgramLineNode *program_line) {
-
-  /* local variables */
-  ProgramLineNode *current; /* line we're executing now */
-
-  /* main loop */
-  current = program_line;
-  while (current && ! run_ended && ! errors_get_code ()) {
-    interpret_statement (current->statement);
-    if (jump_label)
-      current = interpret_label_search ();
-    else
-      current = current->next;
-  }
+  current_line = program_line;
+  while (current_line && ! run_ended && ! errors_get_code ())
+    interpret_statement (current_line->statement);
 }
 
 

@@ -597,6 +597,64 @@ StatementNode *parse_goto_statement (void) {
 }
 
 /*
+ * Parse a GOSUB statement
+ * returns:
+ *   StatementNode*   the parsed GOSUB statement
+ */
+StatementNode *parse_gosub_statement (void) {
+
+  /* local variables */
+  StatementNode *statement; /* the IF statement */
+
+  /* initialise the statement */
+  statement = statement_create ();
+  statement->class = STATEMENT_GOSUB;
+  statement->statement.gosubn = statement_create_gosub ();
+
+  /* parse the line label expression */
+  if (! (statement->statement.gosubn->label = parse_expression ())) {
+    statement_destroy (statement);
+    statement = NULL;
+  }
+
+  /* return the new statement */
+  return statement;
+}
+
+/*
+ * Parse an RETURN statement
+ * globals:
+ *   Token*   stored_token   The token after the RETURN statement
+ * returns:
+ *   StatementNode*          The statement assembled
+ */
+StatementNode *parse_return_statement (void) {
+
+  /* local variables */
+  Token *token; /* token read to ensure the line contains only RETURN */
+  StatementNode *statement = NULL; /* the RETURN */
+  int line; /* line on which the RETURN token appeared */
+
+  /* check that there's nothing on this line after the RETURN */
+  line = tokeniser_get_line ();
+  token = get_token_to_parse ();
+  if (token->class == TOKEN_EOF || token->line > line) {
+    statement = statement_create ();
+    statement->class = STATEMENT_RETURN;
+    stored_token = token;
+  }
+
+  /* if there is, raise an error and clean up the mess */
+  else {
+    errors_set_code (E_UNEXPECTED_PARAMETER);
+    token_destroy (token);
+  }
+
+  /* return the statement */
+  return statement;
+}
+
+/*
  * Parse an END statement
  * globals:
  *   Token*   stored_token   The token after the END statement
@@ -844,6 +902,9 @@ StatementNode *parse_statement () {
     case STATEMENT_GOTO:
       statement = parse_goto_statement ();
       break;
+    case STATEMENT_GOSUB:
+      statement = parse_gosub_statement ();
+      break;
     case STATEMENT_END:
       statement = parse_end_statement ();
       break;
@@ -853,7 +914,6 @@ StatementNode *parse_statement () {
     case STATEMENT_INPUT:
       statement = parse_input_statement ();
       break;
-    case STATEMENT_GOSUB:
     case STATEMENT_RETURN:
       statement = statement_create ();
       statement->class = class;

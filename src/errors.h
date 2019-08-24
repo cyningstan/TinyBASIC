@@ -30,6 +30,7 @@ typedef enum {
   E_INVALID_OPERATOR, /* unrecognised operator */
   E_THEN_EXPECTED, /* didn't find the expected THEN after an IF */
   E_UNEXPECTED_PARAMETER, /* more parameters encountered than expected */
+  E_RETURN_WITHOUT_GOSUB, /* return encountered without a GOSUB */
   E_LAST /* placeholder */
 } ErrorCode;
 
