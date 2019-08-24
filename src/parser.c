@@ -740,6 +740,7 @@ ProgramLineNode *parse_program_line (FILE *fh) {
   /* initialise the program line and get the first token */
   input = fh;
   program_line = program_line_create ();
+  program_line->label = generate_default_label ();
   token = get_token_to_parse ();
 
   /* deal with end of file */

@@ -22,6 +22,7 @@ static int variables[26]; /* the numeric variables */
 
 /* forward declarations */
 int interpret_expression (ExpressionNode *expression);
+void interpret_statement (StatementNode *statement);
 
 
 /*
@@ -156,6 +157,39 @@ void interpret_let_statement (LetStatementNode *letn) {
 }
 
 /*
+ * Interpret an IF statement
+ * params:
+ *   IfStatementNode*   ifn   the IF statement details
+ */
+void interpret_if_statement (IfStatementNode *ifn) {
+
+  /* local variables */
+  int
+    left, /* result of the left-hand expression */
+    right, /* result of the right-hand expression */
+    comparison; /* result of the comparison between the two */
+
+  /* get the expressions */
+  left = interpret_expression (ifn->left);
+  right = interpret_expression (ifn->right);
+
+  /* make the comparison */
+  switch (ifn->op) {
+    case RELOP_EQUAL: comparison = (left == right); break;
+    case RELOP_UNEQUAL: comparison = (left != right); break;
+    case RELOP_LESSTHAN: comparison = (left < right); break;
+    case RELOP_LESSOREQUAL: comparison = (left <= right); break;
+    case RELOP_GREATERTHAN: comparison = (left > right); break;
+    case RELOP_GREATEROREQUAL: comparison = (left >= right); break;
+  }
+
+  /* perform the conditional statement */
+  if (comparison)
+    interpret_statement (ifn->statement);
+}
+
+
+/*
  * Interpret a PRINT statement
  * params:
  *   PrintStatementNode*   printn   the PRINT statement details
@@ -184,6 +218,27 @@ void interpret_print_statement (PrintStatementNode *printn) {
 }
 
 /*
+ * Interpret an individual statement
+ * params:
+ *   StatementNode*   statement   the statement to interpret
+ */
+void interpret_statement (StatementNode *statement) {
+  switch (statement->class) {
+    case STATEMENT_LET:
+      interpret_let_statement (statement->statement.letn);
+      break;
+    case STATEMENT_IF:
+      interpret_if_statement (statement->statement.ifn);
+      break;
+    case STATEMENT_PRINT:
+      interpret_print_statement (statement->statement.printn);
+      break;
+    default:
+      printf ("Statement type %d not implemented.\n", statement->class);
+  }
+}
+
+/*
  * Interpret program starting from a particular line
  * params:
  *   ProgramLineNode*   program_line   the starting line
@@ -196,25 +251,10 @@ void interpret_program_from (ProgramLineNode *program_line) {
   /* main loop */
   current = program_line;
   while (current) {
+    interpret_statement (current->statement);
     switch (current->statement->class) {
-
-      /* interpret a LET */
-      case STATEMENT_LET:
-        interpret_let_statement (current->statement->statement.letn);
-        current = current->next;
-        break;
-
-      /* interpret a PRINT */
-      case STATEMENT_PRINT:
-        interpret_print_statement (current->statement->statement.printn);
-        current = current->next;
-        break;
-
-      /* unknown statement type reached */
       default:
-        printf ("Statement type %d not implemented.\n",
-          current->statement->class);
-        current = NULL;
+        current = current->next;
     }
   }
 }

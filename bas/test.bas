@@ -7,3 +7,5 @@
     PRINT "Z=",Y,"*",X,"=",Z
     IF Z=Y*X THEN PRINT "You should see this."
     IF Z<>Y*X THEN PRINT "You shouldn't see this."
+    IF Z>10 THEN IF Z<40 THEN PRINT "You should see this too."
+    IF Z>10 THEN IF Z>=40 THEN PRINT "You shouldn't see this either."
