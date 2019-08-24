@@ -16,6 +16,14 @@
 
 
 /*
+ * Forward References
+ */
+
+/* statement_output() has a forward reference from statement_output_if() */
+char *statement_output (StatementNode *statement);
+
+
+/*
  * Level 1 Functions
  */
 
@@ -199,6 +207,57 @@ void statement_destroy_if (IfStatementNode *ifn) {
   free (ifn);
 }
 
+/*
+ * IF statement output
+ * params:
+ *   IfStatementNode*   ifn   data for the IF statement
+ * returns:
+ *   char*                    the IF statement text
+ */
+char *statement_output_if (IfStatementNode *ifn) {
+
+  /* local variables */
+  char
+    *if_text = NULL, /* the LET text to be assembled */
+    *left_text = NULL, /* the text of the left expression */
+    *op_text = NULL, /* the operator text */
+    *right_text = NULL, /* the text of the right expression */
+    *statement_text = NULL; /* the text of the conditional statement */
+
+  /* assemble the expressions and conditional statement */
+  left_text = expression_output (ifn->left);
+  right_text = expression_output (ifn->right);
+  statement_text = statement_output (ifn->statement);
+
+  /* work out the operator text */
+  op_text = malloc (3);
+  switch (ifn->op) {
+    case RELOP_EQUAL: strcpy (op_text, "="); break;
+    case RELOP_UNEQUAL: strcpy (op_text, "<>"); break;
+    case RELOP_LESSTHAN: strcpy (op_text, "<"); break;
+    case RELOP_LESSOREQUAL: strcpy (op_text, "<="); break;
+    case RELOP_GREATERTHAN: strcpy (op_text, ">"); break;
+    case RELOP_GREATEROREQUAL: strcpy (op_text, ">="); break;
+  }
+
+  /* assemble the final IF text, if we have everything we need */
+  if (left_text && op_text && right_text && statement_text) {
+    if_text = malloc (3 + strlen (left_text) + strlen (op_text) +
+      strlen (right_text) + 6 + strlen (statement_text) + 1);
+    sprintf (if_text, "IF %s%s%s THEN %s", left_text, op_text, right_text,
+      statement_text);
+  }
+
+  /* free up the temporary bits of memory we've reserved */
+  if (left_text) free (left_text);
+  if (op_text) free (op_text);
+  if (right_text) free (right_text);
+  if (statement_text) free (statement_text);
+
+  /* return it */
+  return if_text;
+}
+
 
 /*
  * Top Level Functions
@@ -259,10 +318,12 @@ char *statement_output (StatementNode *statement) {
   case STATEMENT_LET:
     output = statement_output_let (statement->statement.letn);
     break;
+  case STATEMENT_IF:
+    output = statement_output_if (statement->statement.ifn);
+    break;
   case STATEMENT_PRINT:
     output = statement_output_print (statement->statement.printn);
     break;
-  case STATEMENT_IF:
   case STATEMENT_GOTO:
   case STATEMENT_GOSUB:
   case STATEMENT_RETURN:
