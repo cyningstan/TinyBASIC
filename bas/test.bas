@@ -1,12 +1,8 @@
-100 PRINT "A little Tiny BASIC demonstration."
-    LET X=5
-    PRINT "X=",X
-    LET Y=6
-    PRINT "Y=",Y
-    LET Z=Y*X
-    PRINT "Z=",Y,"*",X,"=",Z
-    IF Z=Y*X THEN PRINT "You should see this."
-    IF Z<>Y*X THEN PRINT "You shouldn't see this."
-    IF Z>10 THEN IF Z<40 THEN PRINT "You should see this too."
-    IF Z>10 THEN IF Z>=40 THEN PRINT "You shouldn't see this either."
-    GOTO 100
+    PRINT "Fibonnaci numbers:"
+    LET A=0
+    LET B=1
+    PRINT A
+100 PRINT B
+    LET B=A+B
+    LET A=B-A
+    IF B<=1000 THEN GOTO 100

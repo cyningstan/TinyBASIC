@@ -215,7 +215,7 @@ int main (int argc, char **argv) {
 
   /* deal with errors */
   if ((code = errors_get_code ())) {
-    printf ("Error code: %d\n", code);
+    printf ("Parse error code: %d\n", code);
     exit (code);
   }
 
@@ -223,6 +223,8 @@ int main (int argc, char **argv) {
   switch (output) {
     case OUTPUT_INTERPRET:
       interpret_program (program);
+      if ((code = errors_get_code ()))
+        printf ("Runtime error code: %d\n", code);
       break;
     case OUTPUT_LST:
       tinybasic_output_lst (program);

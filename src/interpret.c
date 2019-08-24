@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "errors.h"
+#include "options.h"
 #include "statement.h"
 
 
@@ -23,7 +24,7 @@ void interpret_statement (StatementNode *statement);
 /* global variables */
 static ProgramNode *stored_program; /* a global copy of the program */
 static int variables[26]; /* the numeric variables */
-static int jump_label; /* destination of a GOTO or GOSUB */
+static int jump_label = 0; /* destination of a GOTO or GOSUB */
 
 
 /*
@@ -189,6 +190,23 @@ void interpret_if_statement (IfStatementNode *ifn) {
     interpret_statement (ifn->statement);
 }
 
+/*
+ * Interpret a GOTO statement
+ * params:
+ *   GotoStatementNode*   goton   the GOTO statement details
+ */
+void interpret_goto_statement (GotoStatementNode *goton) {
+
+  /* local variables */
+  int label; /* the label to jump to */
+
+  /* store the label so we can search for it in the program */
+  label = interpret_expression (goton->label);
+  if (label)
+    jump_label = label;
+  else
+    errors_set_code (E_INVALID_LINE_NUMBER);
+}
 
 /*
  * Interpret a PRINT statement
@@ -231,12 +249,42 @@ void interpret_statement (StatementNode *statement) {
     case STATEMENT_IF:
       interpret_if_statement (statement->statement.ifn);
       break;
+    case STATEMENT_GOTO:
+      interpret_goto_statement (statement->statement.goton);
+      break;
     case STATEMENT_PRINT:
       interpret_print_statement (statement->statement.printn);
       break;
     default:
       printf ("Statement type %d not implemented.\n", statement->class);
   }
+}
+
+/*
+ * Find a program line given its label
+ * returns:
+ *   ProgramLineNode*   the program line found
+ */
+ProgramLineNode *interpret_label_search (void) {
+
+  /* local variables */
+  ProgramLineNode
+    *ptr, /* a line we're currently looking at */
+    *found = NULL; /* the line if found */
+
+  /* do the search */
+  for (ptr = stored_program->first; ptr && ! found; ptr = ptr->next)
+    if (ptr->label == jump_label)
+      found = ptr;
+    else if (ptr->label >= jump_label
+      && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
+      found = ptr;
+
+  /* check for errors and return what was found */
+  if (! found)
+    errors_set_code (E_INVALID_LINE_NUMBER);
+  jump_label = 0;
+  return found;
 }
 
 /*
@@ -251,12 +299,12 @@ void interpret_program_from (ProgramLineNode *program_line) {
 
   /* main loop */
   current = program_line;
-  while (current) {
+  while (current && ! errors_get_code ()) {
     interpret_statement (current->statement);
-    switch (current->statement->class) {
-      default:
-        current = current->next;
-    }
+    if (jump_label)
+      current = interpret_label_search ();
+    else
+      current = current->next;
   }
 }
 

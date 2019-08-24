@@ -288,6 +288,34 @@ void statement_destroy_goto (GotoStatementNode *goton) {
   }
 }
 
+/*
+ * GOTO statement output
+ * params:
+ *   GotoStatementNode*   goton   data for the GOTO statement
+ * returns:
+ *   char*                        the GOTO statement text
+ */
+char *statement_output_goto (GotoStatementNode *goton) {
+
+  /* local variables */
+  char
+    *goto_text = NULL, /* the GOTO text to be assembled */
+    *expression_text = NULL; /* the text of the expression */
+
+  /* assemble the expression */
+  expression_text = expression_output (goton->label);
+
+  /* assemble the final LET text, if we have an expression */
+  if (expression_text) {
+    goto_text = malloc (6 + strlen (expression_text));
+    sprintf (goto_text, "GOTO %s", expression_text);
+    free (expression_text);
+  }
+
+  /* return it */
+  return goto_text;
+}
+
 
 /*
  * Top Level Functions
@@ -361,6 +389,8 @@ char *statement_output (StatementNode *statement) {
     output = statement_output_print (statement->statement.printn);
     break;
   case STATEMENT_GOTO:
+    output = statement_output_goto (statement->statement.goton);
+    break;
   case STATEMENT_GOSUB:
   case STATEMENT_RETURN:
   case STATEMENT_END:

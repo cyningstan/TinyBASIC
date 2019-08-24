@@ -11,7 +11,7 @@
     LET C = 1
 
     REM Check for relevant factors
-100 IF C/15*15 = C THEN GOTO 115
+ 10 IF C/15*15 = C THEN GOTO 115
     IF C/5*5 = C THEN GOTO 105
     IF C/3*3 = C THEN GOTO 103
 
@@ -32,6 +32,6 @@
 
     REM Increment C and repeat until 100 reached
 199 LET C=C+1
-    IF C<=100 THEN GOTO 100
+    IF C<=100 THEN GOTO 10
     END
 
