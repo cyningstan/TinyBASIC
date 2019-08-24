@@ -238,6 +238,38 @@ void interpret_print_statement (PrintStatementNode *printn) {
 }
 
 /*
+ * Interpret an INPUT statement
+ * params:
+ *   InputStatementNode*   inputn   the INPUT statement details
+ */
+void interpret_input_statement (InputStatementNode *inputn) {
+
+  /* local variables */
+  VariableListNode *variable; /* current variable to input */
+  int
+    value, /* value input from the user */
+    sign = 1, /* the default sign */
+    ch = 0; /* character from the input stream */
+
+  /* input each of the variables */
+  variable = inputn->first;
+  while (variable) {
+    do {
+      if (ch == '-') sign = -1; else sign = 1;
+      ch = getchar ();
+    } while (ch < '0' || ch > '9');
+    value = 0;
+    do {
+      value = 10 * value + (ch - '0');
+      ch = getchar ();
+    } while (ch >= '0' && ch <= '9');
+    variables[variable->variable - 1] = sign * value;
+    variable = variable->next;
+  }
+}
+
+
+/*
  * Interpret an individual statement
  * params:
  *   StatementNode*   statement   the statement to interpret
@@ -258,6 +290,9 @@ void interpret_statement (StatementNode *statement) {
       break;
     case STATEMENT_PRINT:
       interpret_print_statement (statement->statement.printn);
+      break;
+    case STATEMENT_INPUT:
+      interpret_input_statement (statement->statement.inputn);
       break;
     default:
       printf ("Statement type %d not implemented.\n", statement->class);
