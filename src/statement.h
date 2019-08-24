@@ -165,6 +165,13 @@ IfStatementNode *statement_create_if (void);
 PrintStatementNode *statement_create_print (void);
 
 /*
+ * GOTO Statement Constructor
+ * returns:
+ *   GotoStatementNode*   the new GOTO statement
+ */
+GotoStatementNode *statement_create_goto (void);
+
+/*
  * Statement constructor
  * returns:
  *   StatementNode*   the newly-created blank statement

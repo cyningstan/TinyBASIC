@@ -258,6 +258,36 @@ char *statement_output_if (IfStatementNode *ifn) {
   return if_text;
 }
 
+/*
+ * GOTO Statement Constructor
+ * returns:
+ *   GotoStatementNode*   the new GOTO statement
+ */
+GotoStatementNode *statement_create_goto (void) {
+
+  /* local variables */
+  GotoStatementNode *goton; /* the statement to create */
+
+  /* create and initialise the data */
+  goton = malloc (sizeof (GotoStatementNode));
+  goton->label = NULL;
+
+  /* return the goto statement */
+  return goton;
+}
+
+/*
+ * GOTO Statement Destructor
+ * params:
+ *   GotoStatementNode*   goton   the doomed GOTO statement
+ */
+void statement_destroy_goto (GotoStatementNode *goton) {
+  if (goton) {
+    if (goton->label) free (goton->label);
+    free (goton);
+  }
+}
+
 
 /*
  * Top Level Functions
@@ -294,6 +324,12 @@ void statement_destroy (StatementNode *statement) {
       break;
     case STATEMENT_PRINT:
       statement_destroy_print (statement->statement.printn);
+      break;
+    case STATEMENT_IF:
+      statement_destroy_if (statement->statement.ifn);
+      break;
+    case STATEMENT_GOTO:
+      statement_destroy_goto (statement->statement.goton);
       break;
     default:
       break;

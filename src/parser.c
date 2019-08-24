@@ -665,6 +665,31 @@ StatementNode *parse_if_statement (void) {
   return statement;
 }
 
+/*
+ * Parse a GOTO statement
+ * returns:
+ *   StatementNode*   the parsed GOTO statement
+ */
+StatementNode *parse_goto_statement (void) {
+
+  /* local variables */
+  StatementNode *statement; /* the IF statement */
+
+  /* initialise the statement */
+  statement = statement_create ();
+  statement->class = STATEMENT_GOTO;
+  statement->statement.goton = statement_create_goto ();
+
+  /* parse the line label expression */
+  if (! (statement->statement.goton->label = parse_expression ())) {
+    statement_destroy (statement);
+    statement = NULL;
+  }
+
+  /* return the new statement */
+  return statement;
+}
+
 
 /*
  * Level ? Routines
@@ -700,6 +725,8 @@ StatementNode *parse_statement () {
       statement = parse_print_statement ();
       break;
     case STATEMENT_GOTO:
+      statement = parse_goto_statement ();
+      break;
     case STATEMENT_GOSUB:
     case STATEMENT_RETURN:
     case STATEMENT_END:

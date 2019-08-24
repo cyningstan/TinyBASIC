@@ -15,14 +15,15 @@
 #include "statement.h"
 
 
-/* global variables */
-static ProgramNode *stored_program; /* a global copy of the program */
-static int variables[26]; /* the numeric variables */
-
-
 /* forward declarations */
 int interpret_expression (ExpressionNode *expression);
 void interpret_statement (StatementNode *statement);
+
+
+/* global variables */
+static ProgramNode *stored_program; /* a global copy of the program */
+static int variables[26]; /* the numeric variables */
+static int jump_label; /* destination of a GOTO or GOSUB */
 
 
 /*

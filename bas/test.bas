@@ -1,4 +1,4 @@
-    PRINT "A little Tiny BASIC demonstration."
+100 PRINT "A little Tiny BASIC demonstration."
     LET X=5
     PRINT "X=",X
     LET Y=6
@@ -9,3 +9,4 @@
     IF Z<>Y*X THEN PRINT "You shouldn't see this."
     IF Z>10 THEN IF Z<40 THEN PRINT "You should see this too."
     IF Z>10 THEN IF Z>=40 THEN PRINT "You shouldn't see this either."
+    GOTO 100
