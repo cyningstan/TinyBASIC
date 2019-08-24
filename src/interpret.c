@@ -54,11 +54,12 @@ static int run_ended = 0; /* set to 1 when an END is encountered */
 int interpret_factor (FactorNode *factor) {
   switch (factor->class) {
     case FACTOR_VARIABLE:
-      return variables[factor->data.variable - 1];
+      return variables[factor->data.variable - 1] * (factor->sign == SIGN_POSITIVE ? 1 : -1);
     case FACTOR_VALUE:
-      return factor->data.value;
+      return factor->data.value * (factor->sign == SIGN_POSITIVE ? 1 : -1);
     case FACTOR_EXPRESSION:
-      return interpret_expression (factor->data.expression);
+      return interpret_expression (factor->data.expression)
+        * (factor->sign == SIGN_POSITIVE ? 1 : -1);
     default:
       break;
   }
