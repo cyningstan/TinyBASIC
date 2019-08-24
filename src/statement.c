@@ -88,98 +88,6 @@ char *statement_output_let (LetStatementNode *letn) {
 
 
 /*
- * PRINT Statement Functions
- */
-
-
-/*
- * PRINT statement constructor
- * returns:
- *   PrintStatementNode*   the created PRINT statement
- */
-PrintStatementNode *statement_create_print (void) {
-
-  /* local variables */
-  PrintStatementNode *printn; /* the created node */
-
-  /* allocate memory and assign safe defaults */
-  printn = malloc (sizeof (PrintStatementNode));
-  printn->first = NULL;
-
-  /* return the PRINT statement node */
-  return printn;
-}
-
-/*
- * Destructor for a PRINT statement
- * params:
- *   PrintStatementNode   *printn   the doomed PRINT statement.
- */
-void statement_destroy_print (PrintStatementNode *printn) {
-  OutputNode *current, *next;
-  current = printn->first;
-  while (current) {
-    next = current->next;
-    free (current);
-    current = next;
-  }
-  free (printn);
-}
-
-/*
- * PRINT statement output
- * params:
- *   PrintStatementNode*   printn   data for the PRINT statement
- * returns:
- *   char*                          the PRINT statement text
- */
-char *statement_output_print (PrintStatementNode *printn) {
-
-  /* local variables */
-  char
-    *print_text, /* the PRINT text to be assembled */
-    *output_text = NULL; /* the text of the current output item */
-  OutputNode *output; /* the current output item */
-
-  /* initialise the PRINT statement */
-  print_text = malloc (6);
-  strcpy (print_text, "PRINT");
-
-  /* add the output items */
-  if ((output = printn->first)) {
-    do {
-
-      /* add the separator */
-      print_text = realloc (print_text, strlen (print_text) + 2);
-      strcat (print_text, output == printn->first ? " " : ",");
-
-      /* format the output item */
-      switch (output->class) {
-      case OUTPUT_STRING:
-        output_text = malloc (strlen (output->output.string) + 3);
-        sprintf (output_text, "%c%s%c", '"', output->output.string, '"');
-        break;
-      case OUTPUT_EXPRESSION:
-        output_text = expression_output (output->output.expression);
-        break;
-      }
-
-      /* add the output item */
-      print_text = realloc (print_text,
-        strlen (print_text) + strlen (output_text) + 1);
-      strcat (print_text, output_text);
-      free (output_text);
-
-    /* look for the next output item */
-    } while ((output = output->next));
-  }
-
-  /* return the assembled text */
-  return print_text;
-}
-
-
-/*
  * IF Statement Functions
  */
 
@@ -338,11 +246,192 @@ char *statement_output_goto (GotoStatementNode *goton) {
 /*
  * END Statement Functions
  */
+
+
+/*
+ * END statement output
+ * returns:
+ *   char*   A new string with the text "END"
+ */
 char *statement_output_end (void) {
     char *end_text; /* the full text of the END command */
     end_text = malloc (4);
     strcpy (end_text, "END");
     return end_text;
+}
+
+
+/*
+ * PRINT Statement Functions
+ */
+
+
+/*
+ * PRINT statement constructor
+ * returns:
+ *   PrintStatementNode*   the created PRINT statement
+ */
+PrintStatementNode *statement_create_print (void) {
+
+  /* local variables */
+  PrintStatementNode *printn; /* the created node */
+
+  /* allocate memory and assign safe defaults */
+  printn = malloc (sizeof (PrintStatementNode));
+  printn->first = NULL;
+
+  /* return the PRINT statement node */
+  return printn;
+}
+
+/*
+ * Destructor for a PRINT statement
+ * params:
+ *   PrintStatementNode   *printn   the doomed PRINT statement.
+ */
+void statement_destroy_print (PrintStatementNode *printn) {
+  OutputNode *current, *next;
+  current = printn->first;
+  while (current) {
+    next = current->next;
+    free (current);
+    current = next;
+  }
+  free (printn);
+}
+
+/*
+ * PRINT statement output
+ * params:
+ *   PrintStatementNode*   printn   data for the PRINT statement
+ * returns:
+ *   char*                          the PRINT statement text
+ */
+char *statement_output_print (PrintStatementNode *printn) {
+
+  /* local variables */
+  char
+    *print_text, /* the PRINT text to be assembled */
+    *output_text = NULL; /* the text of the current output item */
+  OutputNode *output; /* the current output item */
+
+  /* initialise the PRINT statement */
+  print_text = malloc (6);
+  strcpy (print_text, "PRINT");
+
+  /* add the output items */
+  if ((output = printn->first)) {
+    do {
+
+      /* add the separator */
+      print_text = realloc (print_text, strlen (print_text) + 2);
+      strcat (print_text, output == printn->first ? " " : ",");
+
+      /* format the output item */
+      switch (output->class) {
+      case OUTPUT_STRING:
+        output_text = malloc (strlen (output->output.string) + 3);
+        sprintf (output_text, "%c%s%c", '"', output->output.string, '"');
+        break;
+      case OUTPUT_EXPRESSION:
+        output_text = expression_output (output->output.expression);
+        break;
+      }
+
+      /* add the output item */
+      print_text = realloc (print_text,
+        strlen (print_text) + strlen (output_text) + 1);
+      strcat (print_text, output_text);
+      free (output_text);
+
+    /* look for the next output item */
+    } while ((output = output->next));
+  }
+
+  /* return the assembled text */
+  return print_text;
+}
+
+
+/*
+ * INPUT Statement Functions
+ */
+
+
+/*
+ * INPUT statement constructor
+ * returns:
+ *   InputStatementNode*   initialised INPUT statement data
+ */
+InputStatementNode *statement_create_input (void) {
+
+  /* local variables */
+  InputStatementNode *inputn; /* the new input statement data */
+
+  /* allocate memory and initalise safely */
+  inputn = malloc (sizeof (InputStatementNode));
+  inputn->first = NULL;
+
+  /* return the created node */
+  return inputn;
+}
+
+/*
+ * INPUT statement destructor
+ * params:
+ *   InputStatementNode*   inputn   the doomed INPUT statement node
+ */
+void statement_destroy_input (InputStatementNode *inputn) {
+
+  /* local variables */
+  VariableListNode
+    *variable, /* the current variable to destroy */
+    *next; /* the next variable to destroy */
+
+  /* delete the variables from the variable list, then the input node */
+  if (inputn) {
+    variable = inputn->first;
+    while (variable) {
+      next = variable->next;
+      free (variable);
+      variable = next;
+    }
+    free (inputn);
+  }
+}
+
+/*
+ * INPUT statement output
+ * params:
+ *   InputStatementNode*   inputn   the input statement node to show
+ * returns:
+ *   char *                         the text of the INPUT statement
+ */
+char *statement_output_input (InputStatementNode *inputn) {
+
+  /* local variables */
+  char
+    *input_text, /* the INPUT text to be assembled */
+    var_text[3]; /* text representation of each variable with separator */
+  VariableListNode *variable; /* the current output item */
+
+  /* initialise the INPUT statement */
+  input_text = malloc (6);
+  strcpy (input_text, "INPUT");
+
+  /* add the output items */
+  if ((variable = inputn->first)) {
+    do {
+      sprintf (var_text, "%c%c",
+        (variable == inputn->first) ? ' ' : ',',
+        variable->variable + 'A' - 1);
+      input_text = realloc (input_text, strlen (input_text) + 3);
+      strcat (input_text, var_text);
+    } while ((variable = variable->next));
+  }
+
+  /* return the assembled text */
+  return input_text;
 }
 
 
@@ -408,30 +497,32 @@ char *statement_output (StatementNode *statement) {
 
   /* build the statement itself */
   switch (statement->class) {
-  case STATEMENT_LET:
-    output = statement_output_let (statement->statement.letn);
-    break;
-  case STATEMENT_IF:
-    output = statement_output_if (statement->statement.ifn);
-    break;
-  case STATEMENT_GOTO:
-    output = statement_output_goto (statement->statement.goton);
-    break;
-  case STATEMENT_END:
-    output = statement_output_end ();
-    break;
-  case STATEMENT_PRINT:
-    output = statement_output_print (statement->statement.printn);
-    break;
-  case STATEMENT_GOSUB:
-  case STATEMENT_RETURN:
-  case STATEMENT_INPUT:
-    output = malloc (17);
-    sprintf (output, "Statement type %d", statement->class);
-    break;
-  default:
-    output = malloc (24);
-    strcpy (output, "Unrecognised statement.");
+    case STATEMENT_LET:
+      output = statement_output_let (statement->statement.letn);
+      break;
+    case STATEMENT_IF:
+      output = statement_output_if (statement->statement.ifn);
+      break;
+    case STATEMENT_GOTO:
+      output = statement_output_goto (statement->statement.goton);
+      break;
+    case STATEMENT_END:
+      output = statement_output_end ();
+      break;
+    case STATEMENT_PRINT:
+      output = statement_output_print (statement->statement.printn);
+      break;
+    case STATEMENT_INPUT:
+      output = statement_output_input (statement->statement.inputn);
+      break;
+    case STATEMENT_GOSUB:
+    case STATEMENT_RETURN:
+      output = malloc (17);
+      sprintf (output, "Statement type %d", statement->class);
+      break;
+    default:
+      output = malloc (24);
+      strcpy (output, "Unrecognised statement.");
   }
 
   /* return the listing line */

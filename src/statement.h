@@ -158,6 +158,13 @@ LetStatementNode *statement_create_let (void);
 IfStatementNode *statement_create_if (void);
 
 /*
+ * GOTO Statement Constructor
+ * returns:
+ *   GotoStatementNode*   the new GOTO statement
+ */
+GotoStatementNode *statement_create_goto (void);
+
+/*
  * PRINT statement constructor
  * returns:
  *   PrintStatementNode*   the created PRINT statement
@@ -165,11 +172,11 @@ IfStatementNode *statement_create_if (void);
 PrintStatementNode *statement_create_print (void);
 
 /*
- * GOTO Statement Constructor
+ * INPUT statement constructor
  * returns:
- *   GotoStatementNode*   the new GOTO statement
+ *   InputStatementNode*   initialised INPUT statement data
  */
-GotoStatementNode *statement_create_goto (void);
+InputStatementNode *statement_create_input (void);
 
 /*
  * Statement constructor

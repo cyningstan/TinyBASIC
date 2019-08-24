@@ -723,6 +723,93 @@ StatementNode *parse_print_statement (void) {
   return statement;
 }
 
+/*
+ * Parse an INPUT statement
+ * globals:
+ *   Token*   stored_token   The token after the whole statement
+ * returns:
+ *   StatementNode*          The statement assembled
+ */
+StatementNode *parse_input_statement (void) {
+
+  /* local variables */
+  Token *token; /* tokens read as part of the statement */
+  StatementNode *statement; /* the statement we're building */
+  int
+    line, /* line containing the INPUT token */
+    input_done = 0; /* 1 when the end of the INPUT statement is reached */
+  VariableListNode
+    *nextvar = NULL, /* the next variable node we're parsing */
+    *lastvar = NULL; /* the last variable node we parsed */
+
+  /* initialise the statement */
+  statement = statement_create ();
+  statement->class = STATEMENT_INPUT;
+  statement->statement.inputn = statement_create_input ();
+  line = tokeniser_get_line ();
+
+  /* main loop for parsing the variable list */
+  do {
+    token = get_token_to_parse ();
+
+    /* process a premature end of line */
+    if (token->class == TOKEN_EOF || token->line != line) {
+      errors_set_code (E_INVALID_VARIABLE);
+      statement_destroy (statement);
+      statement = NULL;
+      input_done = 1;
+    }
+
+    /* attempt to process an variable name */
+    else if (token->class != TOKEN_WORD) {
+      errors_set_code (E_INVALID_VARIABLE);
+      statement_destroy (statement);
+      statement = NULL;
+    } else if (strlen (token->content) != 1) {
+      errors_set_code (E_INVALID_VARIABLE);
+      statement_destroy (statement);
+      statement = NULL;
+    } else if (toupper (*token->content) < 'A'
+      || toupper (*token->content) > 'Z') {
+      errors_set_code (E_INVALID_VARIABLE);
+      statement_destroy (statement);
+      statement = NULL;
+    } else {
+      nextvar = malloc (sizeof (VariableListNode));
+      nextvar->variable = toupper(*token->content) - 'A' + 1;
+      nextvar->next = NULL;
+    }
+
+    /* add this variable to the statement and look for another */
+    if (! errors_get_code ()) {
+      if (lastvar)
+        lastvar->next = nextvar;
+      else
+        statement->statement.inputn->first = nextvar;
+      lastvar = nextvar;
+      token = get_token_to_parse ();
+
+      /* if we meet a comma, it means there's another variable */
+      if (token->class == TOKEN_SYMBOL && ! strcmp (token->content, ","))
+        continue;
+
+      /* anything other than an EOL or EOF at this point is an error */
+      if (token->class != TOKEN_EOF && token->line == line) {
+        errors_set_code (E_INVALID_VARIABLE);
+        statement_destroy (statement);
+        statement = NULL;
+      }
+
+      /* error or not, we're done with the PRINT statement now */
+      input_done = 1;
+      stored_token = token;
+    }
+  } while (! input_done);
+
+  /* return the assembled statement */
+  return statement;
+}
+
 
 /*
  * Level ? Routines
@@ -763,9 +850,11 @@ StatementNode *parse_statement () {
     case STATEMENT_PRINT:
       statement = parse_print_statement ();
       break;
+    case STATEMENT_INPUT:
+      statement = parse_input_statement ();
+      break;
     case STATEMENT_GOSUB:
     case STATEMENT_RETURN:
-    case STATEMENT_INPUT:
       statement = statement_create ();
       statement->class = class;
       _skip_line ();
