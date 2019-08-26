@@ -22,7 +22,7 @@
     REM W - Wumpus position
 
     REM -- Begin the Program
-100 PRINT "Think of a number"
+  1 PRINT "Think of a number"
     INPUT S
 200 GOSUB 750
     LET A=1+(R-(R/20*20))
@@ -46,8 +46,8 @@
 500 PRINT "You are in room ",C
     LET P=C
     GOSUB 900
-    PRINT "Exits are ",E,",",F,",",G
     GOSUB 600
+    PRINT "Exits are ",E,",",F,",",G
 510 PRINT "1:Move or 2:Shoot?"
     INPUT M
     IF M<1 THEN GOTO 510
@@ -73,7 +73,9 @@
 620 IF D<>A THEN IF D<>B THEN GOTO 630
     PRINT "A bat swoops down and picks you up..."
     GOSUB 680
-    PRINT "...and drops you down."
+    PRINT "...and drops you down"
+    LET P=C
+    GOSUB 900
 
     REM Is there a pit nearby?
 630 IF E<>H THEN IF F<>H THEN IF G<>H THEN IF E<>I THEN IF F<>I THEN IF G<>I THEN GOTO 640
@@ -107,7 +109,7 @@
     IF R=1 THEN LET D=E
     IF R=2 THEN LET D=F
     IF R=3 THEN LET D=G
-    PRINT "...moves you to ",D,"..."
+    PRINT "...moves you to room ",D,"..."
     IF A=C THEN LET A=D
     IF B=C THEN LET B=D
     LET C=D
@@ -117,7 +119,6 @@
 700 PRINT "Where?"
     INPUT D
     IF D<>E THEN IF D<>F THEN IF D<>G THEN GOTO 700
-    PRINT "You move to room ",D
     LET C=D
     RETURN
 
