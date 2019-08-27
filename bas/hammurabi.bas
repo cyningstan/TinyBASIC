@@ -122,7 +122,7 @@
     END
 
     REM --- Random Number Generator
-250 LET Z=32767-Z*13
-    LET A=Z/2
-    IF A<0 THEN LET A=-A
+250 LET Z=8173*Z+35
+    LET Z=Z-Z/16384*16384
+    LET A=Z
     RETURN

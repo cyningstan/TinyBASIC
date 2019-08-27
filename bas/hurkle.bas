@@ -7,13 +7,13 @@
     REM     G: hurkle column
     REM     H: hurkle row
     REM     M: moves taken
-    REM     S: random number seed
+    REM     R: random number seed
     REM     X: player guess column
     REM     Y: player guess row
 
     REM --- Initialise the random number generator
     PRINT "Think of a number."
-    INPUT S
+    INPUT R
 
     REM --- Initialise the game
     GOSUB 200
@@ -55,7 +55,8 @@
     END
 
     REM --- Random number generator
-200 LET S=32767-S*13
-    LET R=S/2
-    IF R<0 THEN LET R=-R
+    REM     Input:   R - current seed
+    REM     Outputs: R - updated seed
+200 LET R=8173*R+35
+    LET R=R-R/16384*16384
     RETURN
