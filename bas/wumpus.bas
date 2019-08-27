@@ -14,6 +14,7 @@
     REM G - exit 3
     REM H - Hole 1 (bottomless pit) position
     REM I - Hole 2 (bottomless pit) position
+    REM J - Randomised position for player or hazard
     REM M - menu option for move or shoot
     REM N - range for arrow shot
     REM P - parameter to the "exits" routine
@@ -21,33 +22,41 @@
     REM S - random number generator seed
     REM W - Wumpus position
 
-    REM -- Begin the Program
-100 PRINT "Think of a number"
+    REM -- Intialise the random number generator
+  1 PRINT "Think of a number"
     INPUT S
-200 GOSUB 750
-    LET A=1+(R-(R/20*20))
-205 GOSUB 750
-    LET B=1+(R-(R/20*20))
-    IF B=A THEN GOTO 205
-    GOSUB 750
-    LET H=1+(R-(R/20*20))
-210 GOSUB 750
-    LET I=1+(R-(R/20*20))
-    IF I=H THEN GOTO 210
-    GOSUB 750
-    LET W=1+(R-(R/20*20))
-220 GOSUB 750
-    LET C=1+(R-(R/20*20))
-    IF C<>A THEN IF C<>B THEN IF C<>H THEN IF C<>I THEN IF C<>W THEN GOTO 230
-    GOTO 220
-230 PRINT "You enter the caves to Hunt the Wumpus!"
+
+    REM -- Initialise the player and hazard positions
+    LET A=0
+    LET B=0
+    LET C=0
+    LET H=0
+    LET I=0
+    LET W=0
+
+    REM -- Distribute the player and hazards across the map
+    GOSUB 710
+    LET A=J
+    GOSUB 710
+    LET B=J
+    GOSUB 710
+    LET C=J
+    GOSUB 710
+    LET H=J
+    GOSUB 710
+    LET I=J
+    GOSUB 710
+    LET W=J
+
+    REM -- Introductory text
+    PRINT "You enter the caves to Hunt the Wumpus!"
 
     REM -- Main Game Loop
 500 PRINT "You are in room ",C
     LET P=C
     GOSUB 900
-    PRINT "Exits are ",E,",",F,",",G
     GOSUB 600
+    PRINT "Exits are ",E,",",F,",",G
 510 PRINT "1:Move or 2:Shoot?"
     INPUT M
     IF M<1 THEN GOTO 510
@@ -58,22 +67,24 @@
 
     REM -- Subroutine to check for hazards
 
+    REM Has the player encountered a bat?
+600 IF C<>A THEN IF C<>B THEN GOTO 610
+    PRINT "A bat swoops down and picks you up..."
+    GOSUB 680
+    PRINT "...and drops you down"
+    LET P=C
+    GOSUB 900
+
     REM Has the player fallen in a pit?
-600 IF D<>H THEN IF D<>I THEN GOTO 610
+610 IF C<>H THEN IF C<>I THEN GOTO 620
     PRINT "You fall down a bottomless hole into the abyss!"
     END
 
     REM Has the player startled the wumpus?
-610 IF D<>W THEN GOTO 620
+620 IF C<>W THEN GOTO 630
     PRINT "You stumble upon the wumpus!"
     GOSUB 670
     PRINT "The wumpus runs away!"
-
-    REM Has the player encountered a bat?
-620 IF D<>A THEN IF D<>B THEN GOTO 630
-    PRINT "A bat swoops down and picks you up..."
-    GOSUB 680
-    PRINT "...and drops you down."
 
     REM Is there a pit nearby?
 630 IF E<>H THEN IF F<>H THEN IF G<>H THEN IF E<>I THEN IF F<>I THEN IF G<>I THEN GOTO 640
@@ -107,7 +118,9 @@
     IF R=1 THEN LET D=E
     IF R=2 THEN LET D=F
     IF R=3 THEN LET D=G
-    PRINT "...moves you to ",D,"..."
+    IF D<>A THEN IF D<>B THEN GOTO 690
+    GOTO 680
+690 PRINT "...moves you to room ",D,"..."
     IF A=C THEN LET A=D
     IF B=C THEN LET B=D
     LET C=D
@@ -117,9 +130,14 @@
 700 PRINT "Where?"
     INPUT D
     IF D<>E THEN IF D<>F THEN IF D<>G THEN GOTO 700
-    PRINT "You move to room ",D
     LET C=D
     RETURN
+
+    REM -- Find a random unoccupied position
+710 GOSUB 750
+    LET J=1+R-R/20*20
+    IF J<>A THEN IF J<>B THEN IF J<>C THEN IF J<>H THEN IF J<>I THEN IF J<>W THEN RETURN
+    GOTO 710
 
     REM -- Random number generator
 750 LET S=32767-S*13
@@ -140,7 +158,7 @@
     IF P<>E THEN IF P<>F THEN IF P<>G THEN GOTO 815
     IF P=W THEN GOTO 830
     LET N=N-1
-    IF N>1 THEN GOTO 810
+    IF N>0 THEN GOTO 810
     PRINT "The arrow startles the wumpus."
     LET P=W
     GOSUB 900
@@ -188,8 +206,8 @@
     LET G=11
     RETURN
 936 LET E=10
-    LET F=11
-    LET G=12
+    LET F=12
+    LET G=19
     RETURN
 940 LET E=2
     LET F=9
@@ -235,4 +253,3 @@
     LET F=17
     LET G=19
     RETURN
-

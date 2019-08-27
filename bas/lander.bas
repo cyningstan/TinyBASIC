@@ -41,5 +41,5 @@
     GOTO 60
  50 PRINT "Touchdown."
  60 IF A<0 THEN LET A=0
-    PRINT "Time:",T," Altitude:",A," Velocity:",V," Fuel:",F," Thrust:",B
+    PRINT "Time:",T," Altitude:",A," Velocity:",V," Fuel:",F
     END
