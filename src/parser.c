@@ -38,6 +38,7 @@ StatementNode *parse_statement (void);
 
 /* global variables */
 static int last_label = 0; /* last line label encountered */
+static int current_line = 0; /* the last source line parsed */
 static FILE *input; /* the input file */
 static Token *stored_token = NULL; /* token read ahead */
 
@@ -64,7 +65,8 @@ Token *get_token_to_parse () {
   } else
     token = tokeniser_next_token (input);
 
-  /* return the token */
+  /* store the line and return the token */
+  current_line = token->line;
   return token;
 }
 
@@ -85,10 +87,12 @@ FactorNode *parse_factor (void) {
   Token *token; /* token to read */
   FactorNode *factor = NULL; /* the factor we're building */
   ExpressionNode *expression = NULL; /* any parenthesised expression */
+  int start_line; /* the line on which this factor occurs */
 
   /* initialise the factor and grab the next token */
   factor = factor_create ();
   token = get_token_to_parse ();
+  start_line = token->line;
 
   /* interpret a sign */
   if (token->class == TOKEN_SYMBOL
@@ -128,7 +132,7 @@ FactorNode *parse_factor (void) {
         factor->class = FACTOR_EXPRESSION;
         factor->data.expression = expression;
       } else {
-        errors_set_code (E_MISSING_RIGHT_PARENTHESIS);
+        errors_set_code (E_MISSING_RIGHT_PARENTHESIS, start_line, last_label);
         factor_destroy (factor);
         factor = NULL;
         expression_destroy (expression);
@@ -137,7 +141,7 @@ FactorNode *parse_factor (void) {
 
     /* clean up after invalid parenthesised expression */
     else {
-      errors_set_code (E_INVALID_EXPRESSION);
+      errors_set_code (E_INVALID_EXPRESSION, token->line, last_label);
       factor_destroy (factor);
       factor = NULL;
     }
@@ -145,7 +149,7 @@ FactorNode *parse_factor (void) {
 
   /* deal with other errors */
   else {
-    errors_set_code (E_INVALID_EXPRESSION);
+    errors_set_code (E_INVALID_EXPRESSION, token->line, last_label);
     factor_destroy (factor);
     factor = NULL;
   }
@@ -205,10 +209,11 @@ TermNode *parse_term (void) {
         rhptr = rhfactor;
       }
 
-      /* set an error condition if we read a sign but not a factor */
+      /* set an error condition if we read an operator but not a factor */
       else {
         rhfactor_destroy (rhfactor);
-        errors_set_code (E_INVALID_EXPRESSION);
+        if (! errors_get_code ()) /* belt & braces */
+          errors_set_code (E_INVALID_EXPRESSION, token->line, last_label);
       }
 
       /* clean up token */
@@ -275,7 +280,8 @@ ExpressionNode *parse_expression (void) {
       /* set an error condition if we read a sign but not a factor */
       else {
         rhterm_destroy (rhterm);
-        errors_set_code (E_INVALID_EXPRESSION);
+        if (! errors_get_code ()) /* belt & braces */
+          errors_set_code (E_INVALID_EXPRESSION, token->line, last_label);
       }
 
       /* clean up token */
@@ -442,16 +448,16 @@ StatementNode *parse_let_statement (void) {
   /* see what variable we're assigning */
   token = get_token_to_parse ();
   if (token->class != TOKEN_WORD) {
-    errors_set_code (E_INVALID_VARIABLE);
+    errors_set_code (E_INVALID_VARIABLE, line, last_label);
     statement_destroy (statement);
     return NULL;
   } else if (strlen (token->content) != 1) {
-    errors_set_code (E_INVALID_VARIABLE);
+    errors_set_code (E_INVALID_VARIABLE, line, last_label);
     statement_destroy (statement);
     return NULL;
   } else if (toupper (*token->content) < 'A'
     || toupper (*token->content) > 'Z') {
-    errors_set_code (E_INVALID_VARIABLE);
+    errors_set_code (E_INVALID_VARIABLE, line, last_label);
     statement_destroy (statement);
     return NULL;
   }
@@ -461,11 +467,11 @@ StatementNode *parse_let_statement (void) {
   token_destroy (token);
   token = get_token_to_parse ();
   if (token->class != TOKEN_SYMBOL) {
-    errors_set_code (E_INVALID_ASSIGNMENT);
+    errors_set_code (E_INVALID_ASSIGNMENT, line, last_label);
     statement_destroy (statement);
     return NULL;
   } else if (strcmp (token->content, "=")) {
-    errors_set_code (E_INVALID_ASSIGNMENT);
+    errors_set_code (E_INVALID_ASSIGNMENT, line, last_label);
     statement_destroy (statement);
     return NULL;
   }
@@ -473,7 +479,7 @@ StatementNode *parse_let_statement (void) {
   /* get the expression */
   statement->statement.letn->expression = parse_expression ();
   if (! statement->statement.letn->expression) {
-    errors_set_code (E_INVALID_EXPRESSION);
+    errors_set_code (E_INVALID_EXPRESSION, line, last_label);
     statement_destroy (statement);
     return NULL;
   }
@@ -482,7 +488,7 @@ StatementNode *parse_let_statement (void) {
   line = token->line;
   stored_token = token = get_token_to_parse ();
   if (token->class != TOKEN_EOF && token->line == line) {
-    errors_set_code (E_INVALID_EXPRESSION);
+    errors_set_code (E_INVALID_EXPRESSION, line, last_label);
     statement_destroy (statement);
     return NULL;
   }
@@ -519,7 +525,7 @@ StatementNode *parse_if_statement (void) {
   if (! errors_get_code ()) {
     token = get_token_to_parse ();
     if (token->class != TOKEN_SYMBOL)
-      errors_set_code (E_INVALID_OPERATOR);
+      errors_set_code (E_INVALID_OPERATOR, token->line, last_label);
     else if (! strcmp (token->content, "="))
       statement->statement.ifn->op = RELOP_EQUAL;
     else if (! strcmp (token->content, "<>")
@@ -534,7 +540,7 @@ StatementNode *parse_if_statement (void) {
     else if (! strcmp (token->content, ">="))
       statement->statement.ifn->op = RELOP_GREATEROREQUAL;
     else
-      errors_set_code (E_INVALID_OPERATOR);
+      errors_set_code (E_INVALID_OPERATOR, token->line, last_label);
   }
 
   /* parse the second expression */
@@ -545,14 +551,14 @@ StatementNode *parse_if_statement (void) {
   if (! errors_get_code ()) {
     token = get_token_to_parse ();
     if (token->class != TOKEN_WORD)
-      errors_set_code (E_THEN_EXPECTED);
+      errors_set_code (E_THEN_EXPECTED, token->line, last_label);
     else {
       uccontent = malloc (strlen (token->content) + 1);
       strcpy (uccontent, token->content);
       for (ucptr = uccontent; *ucptr; ++ucptr)
         *ucptr = toupper (*ucptr);
       if (strcmp (uccontent, "THEN"))
-        errors_set_code (E_THEN_EXPECTED);
+        errors_set_code (E_THEN_EXPECTED, token->line, last_label);
       free (uccontent);
     }
   }
@@ -646,7 +652,7 @@ StatementNode *parse_return_statement (void) {
 
   /* if there is, raise an error and clean up the mess */
   else {
-    errors_set_code (E_UNEXPECTED_PARAMETER);
+    errors_set_code (E_UNEXPECTED_PARAMETER, token->line, last_label);
     token_destroy (token);
   }
 
@@ -679,7 +685,7 @@ StatementNode *parse_end_statement (void) {
 
   /* if there is, raise an error and clean up the mess */
   else {
-    errors_set_code (E_UNEXPECTED_PARAMETER);
+    errors_set_code (E_UNEXPECTED_PARAMETER, token->line, last_label);
     token_destroy (token);
   }
 
@@ -719,7 +725,7 @@ StatementNode *parse_print_statement (void) {
 
     /* process a premature end of line */
     if (token->class == TOKEN_EOF || token->line != line) {
-      errors_set_code (E_INVALID_PRINT_OUTPUT);
+      errors_set_code (E_INVALID_PRINT_OUTPUT, line, last_label);
       statement_destroy (statement);
       statement = NULL;
       print_done = 1;
@@ -744,7 +750,7 @@ StatementNode *parse_print_statement (void) {
         nextoutput->output.expression = expression;
         nextoutput->next = NULL;
       } else {
-        errors_set_code (E_INVALID_PRINT_OUTPUT);
+        errors_set_code (E_INVALID_PRINT_OUTPUT, token->line, last_label);
         statement_destroy (statement);
         statement = NULL;
         print_done = 1;
@@ -766,7 +772,7 @@ StatementNode *parse_print_statement (void) {
 
       /* anything other than an EOL or EOF at this point is an error */
       if (token->class != TOKEN_EOF && token->line == line) {
-        errors_set_code (E_INVALID_PRINT_OUTPUT);
+        errors_set_code (E_INVALID_PRINT_OUTPUT, token->line, last_label);
         statement_destroy (statement);
         statement = NULL;
       }
@@ -812,7 +818,7 @@ StatementNode *parse_input_statement (void) {
 
     /* process a premature end of line */
     if (token->class == TOKEN_EOF || token->line != line) {
-      errors_set_code (E_INVALID_VARIABLE);
+      errors_set_code (E_INVALID_VARIABLE, line, last_label);
       statement_destroy (statement);
       statement = NULL;
       input_done = 1;
@@ -820,16 +826,16 @@ StatementNode *parse_input_statement (void) {
 
     /* attempt to process an variable name */
     else if (token->class != TOKEN_WORD) {
-      errors_set_code (E_INVALID_VARIABLE);
+      errors_set_code (E_INVALID_VARIABLE, token->line, last_label);
       statement_destroy (statement);
       statement = NULL;
     } else if (strlen (token->content) != 1) {
-      errors_set_code (E_INVALID_VARIABLE);
+      errors_set_code (E_INVALID_VARIABLE, token->line, last_label);
       statement_destroy (statement);
       statement = NULL;
     } else if (toupper (*token->content) < 'A'
       || toupper (*token->content) > 'Z') {
-      errors_set_code (E_INVALID_VARIABLE);
+      errors_set_code (E_INVALID_VARIABLE, token->line, last_label);
       statement_destroy (statement);
       statement = NULL;
     } else {
@@ -853,7 +859,7 @@ StatementNode *parse_input_statement (void) {
 
       /* anything other than an EOL or EOF at this point is an error */
       if (token->class != TOKEN_EOF && token->line == line) {
-        errors_set_code (E_INVALID_VARIABLE);
+        errors_set_code (E_INVALID_VARIABLE, token->line, last_label);
         statement_destroy (statement);
         statement = NULL;
       }
@@ -920,7 +926,7 @@ StatementNode *parse_statement () {
       _skip_line ();
       break;
     default:
-      errors_set_code (E_UNRECOGNISED_COMMAND);
+      errors_set_code (E_UNRECOGNISED_COMMAND, token->line, last_label);
       token_destroy (token);
   }
 
@@ -937,10 +943,11 @@ StatementNode *parse_statement () {
 /*
  * Parse a line from the source file.
  * globals:
- *   Token             *stored_token   a token already pre-read.
- *   int               last_label      last line label used.
+ *   Token   *stored_token   a token already pre-read.
+ *   int     last_label      last line label used.
+ *   int     current_line    the source line we're parsing
  * returns:
- *   StatementNode                     a fully-assembled statement, hopefully.
+ *   StatementNode           a fully-assembled statement, hopefully.
  */
 ProgramLineNode *parse_program_line (FILE *fh) {
 
@@ -972,7 +979,7 @@ ProgramLineNode *parse_program_line (FILE *fh) {
   if (validate_line_label (program_line->label))
     last_label = program_line->label;
   else {
-    errors_set_code (E_INVALID_LINE_NUMBER);
+    errors_set_code (E_INVALID_LINE_NUMBER, current_line, program_line->label);
     program_line_destroy (program_line);
     return NULL;
   }
@@ -1021,4 +1028,26 @@ ProgramNode *parse_program (FILE *input) {
 
   /* return the program */
   return program;
+}
+
+/*
+ * Return the current source line we're parsing
+ * globals:
+ *   int   current_line   the line stored when the last token was read
+ * returns:
+ *   int                  the line returned
+ */
+int parser_line (void) {
+  return current_line;
+}
+
+/*
+ * Return the label of the source line we're parsing
+ * globals:
+ *   int   last_label   the label stored when validated
+ * returns:
+ *   int                the label returned
+ */
+int parser_label (void) {
+  return last_label;
 }

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "parser.h"
 #include "expression.h"
 #include "errors.h"
 
@@ -92,7 +93,7 @@ char *factor_output (FactorNode *factor) {
       }
       break;
     default:
-      errors_set_code (E_INVALID_EXPRESSION);
+      errors_set_code (E_INVALID_EXPRESSION, parser_line (), parser_label ());
   }
 
   /* apply a negative sign, if necessary */
@@ -212,7 +213,7 @@ char *term_output (TermNode *term) {
         operator_char = '/';
         break;
       default:
-        errors_set_code (E_INVALID_EXPRESSION);
+        errors_set_code (E_INVALID_EXPRESSION, parser_line (), parser_label ());
         free (term_text);
         term_text = NULL;
       }
@@ -341,7 +342,7 @@ char *expression_output (ExpressionNode *expression) {
         operator_char = '-';
         break;
       default:
-        errors_set_code (E_INVALID_EXPRESSION);
+        errors_set_code (E_INVALID_EXPRESSION, parser_line (), parser_label ());
         free (expression_text);
         expression_text = NULL;
       }

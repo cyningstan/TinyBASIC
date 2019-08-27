@@ -54,7 +54,8 @@ static int run_ended = 0; /* set to 1 when an END is encountered */
 int interpret_factor (FactorNode *factor) {
   switch (factor->class) {
     case FACTOR_VARIABLE:
-      return variables[factor->data.variable - 1] * (factor->sign == SIGN_POSITIVE ? 1 : -1);
+      return variables[factor->data.variable - 1]
+        * (factor->sign == SIGN_POSITIVE ? 1 : -1);
     case FACTOR_VALUE:
       return factor->data.value * (factor->sign == SIGN_POSITIVE ? 1 : -1);
     case FACTOR_EXPRESSION:
@@ -82,6 +83,7 @@ int interpret_term (TermNode *term) {
   /* local variables */
   int result_store; /* the partial evaluation */
   RightHandFactor *rhfactor; /* pointer to successive rh factor nodes */
+  int divisor; /* used to check for division by 0 before attempting */
 
   /* calculate the first factor result */
   result_store = interpret_factor (term->factor);
@@ -94,7 +96,10 @@ int interpret_term (TermNode *term) {
         result_store *= interpret_factor (rhfactor->factor);
         break;
       case TERM_OPERATOR_DIVIDE:
-        result_store /= interpret_factor (rhfactor->factor);
+        if ((divisor = interpret_factor (rhfactor->factor)))
+          result_store /= divisor;
+        else
+          errors_set_code (E_DIVIDE_BY_ZERO, 0, current_line->label);
         break;
       default:
         break;
@@ -168,7 +173,7 @@ ProgramLineNode *interpret_label_search (int jump_label) {
 
   /* check for errors and return what was found */
   if (! found)
-    errors_set_code (E_INVALID_LINE_NUMBER);
+    errors_set_code (E_INVALID_LINE_NUMBER, 0, current_line->label);
   return found;
 }
 
@@ -228,7 +233,7 @@ void interpret_if_statement (IfStatementNode *ifn) {
   }
 
   /* perform the conditional statement */
-  if (comparison)
+  if (comparison && ! errors_get_code ())
     interpret_statement (ifn->statement);
   else
     current_line = current_line->next;
@@ -240,7 +245,10 @@ void interpret_if_statement (IfStatementNode *ifn) {
  *   GotoStatementNode*   goton   the GOTO statement details
  */
 void interpret_goto_statement (GotoStatementNode *goton) {
-  current_line = interpret_label_search (interpret_expression (goton->label));
+  int label; /* the line label to go to */
+  label = interpret_expression (goton->label);
+  if (! errors_get_code ())
+    current_line = interpret_label_search (label);
 }
 
 /*
@@ -252,6 +260,7 @@ void interpret_gosub_statement (GosubStatementNode *gosubn) {
 
   /* local variables */
   GosubStackNode *gosub_node; /* indicates the program line to return to */
+  int label; /* the line label to go to */
 
   /* create the new node on the GOSUB stack */
   gosub_node = malloc (sizeof (GosubStackNode));
@@ -260,7 +269,9 @@ void interpret_gosub_statement (GosubStatementNode *gosubn) {
   gosub_stack = gosub_node;
 
   /* branch to the subroutine requested */
-  current_line = interpret_label_search (interpret_expression (gosubn->label));
+  label = interpret_expression (gosubn->label);
+  if (! errors_get_code ())
+    current_line = interpret_label_search (label);
 }
 
 /*
@@ -281,7 +292,7 @@ void interpret_return_statement (void) {
 
   /* no GOSUBs led here, so raise an error */
   else
-    errors_set_code (E_RETURN_WITHOUT_GOSUB);
+    errors_set_code (E_RETURN_WITHOUT_GOSUB, 0, current_line->label);
 }
 
 /*
@@ -293,6 +304,9 @@ void interpret_print_statement (PrintStatementNode *printn) {
 
   /* local variables */
   OutputNode *outn; /* current output node */
+  int
+    items = 0, /* counter ensures runtime errors appear on a new line */
+    result; /* the result of an expression */
 
   /* print each of the output items */
   outn = printn->first;
@@ -300,16 +314,22 @@ void interpret_print_statement (PrintStatementNode *printn) {
     switch (outn->class) {
       case OUTPUT_STRING:
         printf ("%s", outn->output.string);
+        ++items;
         break;
       case OUTPUT_EXPRESSION:
-        printf ("%d", interpret_expression (outn->output.expression));
+        result = interpret_expression (outn->output.expression);
+        if (! errors_get_code ()) {
+          printf ("%d", result);
+          ++items;
+        }
         break;
     }
     outn = outn->next;
   }
 
   /* print the linefeed */
-  printf ("\n");
+  if (items)
+    printf ("\n");
   current_line = current_line->next;
 }
 

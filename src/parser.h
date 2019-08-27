@@ -24,5 +24,22 @@
  */
 ProgramNode *parse_program (FILE *input);
 
+/*
+ * Return the current source line we're parsing
+ * globals:
+ *   int   current_line   the line stored when the last token was read
+ * returns:
+ *   int                  the line returned
+ */
+int parser_line (void);
+
+/*
+ * Return the label of the source line we're parsing
+ * globals:
+ *   int   last_label   the label stored when validated
+ * returns:
+ *   int                the label returned
+ */
+int parser_label (void);
 
 #endif
