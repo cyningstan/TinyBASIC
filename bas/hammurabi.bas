@@ -47,8 +47,8 @@
 
     REM --- Buy land
     GOSUB 250
-    LET V=17+R-R/10*10
-    PRINT "Land is trading at ",Y," bushels per acre."
+    LET V=17+A-A/10*10
+    PRINT "Land is trading at ",V," bushels per acre."
  30 PRINT "How many acres do you wish to buy?"
     INPUT B
     IF B>G/V THEN GOTO 30
@@ -57,7 +57,7 @@
     REM --- Sell land
  35 PRINT "How many acres do you wish to sell?"
     INPUT B
-    IF B>G/V THEN GOTO 35
+    IF B>L THEN GOTO 35
     LET B=-B
 
     REM --- Feed the people
@@ -69,26 +69,34 @@
     REM --- Plant with seed
  45 PRINT "How many acres do you wish to plant with seed?"
     INPUT S
-    IF S>=0 THEN IF S<=G-F-B*V THEN IF S<=10*P THEN IF S<=L+B THEN GOTO 50
+    IF S>=0 THEN IF S/2<=G-F-B*V THEN IF S<=10*P THEN IF S<=L+B THEN GOTO 50
     GOTO 45
 
     REM --- Work out the result
  50 LET L=L+B
     LET G=G-B*V-F-S/2
+
     REM Yield
     GOSUB 250
-    LET Y=A-A/5*5
+    LET Y=1+A-A/5*5
+
     REM Rats
     GOSUB 250
     LET A=1+A-A/5*5
     LET R=0
     IF A>2 THEN GOTO 65
     GOSUB 250
-    LET R=1+A-A/G*G
+    IF G>0 THEN LET R=1+A-A/G*G
+
+    REM Recalculate grain
+ 65 LET G=G+S*Y-R
+    IF G<0 THEN LET G=0
+
     REM Immigration/Birth
- 65 GOSUB 250
-    LET A=1+A/5*5
+    GOSUB 250
+    LET A=1+A-A/5*5
     LET I=A*(20*L+S)/P/100+1
+
     REM Feeding the people
     IF P<=F THEN GOTO 80
     LET D=P-F
@@ -115,6 +123,6 @@
 
     REM --- Random Number Generator
 250 LET Z=32767-Z*13
-    LET A=S/2
+    LET A=Z/2
     IF A<0 THEN LET A=-A
     RETURN
