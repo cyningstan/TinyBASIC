@@ -15,14 +15,14 @@ Both of these tools are non-interactive, and load their input from a source file
 No interactive interpreter is provided.
 .PP
 .B Tinybasic
-provides additional features in the form of optional line numbers (also known as numeric line labels), and a configurable upper limit to the line labels in place of the 255 of Allison's specification.
+provides a few additional features. Comments with the \fBREM\fR statement were not part of the original specification, but are allowed here. There is support for optional line numbers, and a configurable upper limit for them. Because not all lines need a number, this manual will refer to them as \'line labels.\' Where the phrase \'line number\' appears, it will refer to the actual line count in the source file, as a text editor would recognise.
 .SH OPTIONS
 .TP
 .BR \-n " " \fIvalue\fR ", " \-\-line\-numbers\=\fIvalue\fR
-Determines the handling of numeric line labels (known as line numbers in BASIC). An argument of \fBm\fR or \fBmandatory\fR causes \fBtinybasic\fR to require a numeric label for every program line, in ascending order. An argument of \fBi\fR or \fBimplied\fR causes \fBtinybasic\fR to supply numeric labels internally for each line that lacks them; care must be taken when labelling lines so that there is room for a sequence of numbers between one label and the next. An argument of \fBo\fR or \fBoptional\fR makes numeric labels completely optional; they need not be in sequence.
+Determines the handling of line labels. An argument of \fBm\fR or \fBmandatory\fR causes \fBtinybasic\fR to require a line label for every program line, in ascending order. An argument of \fBi\fR or \fBimplied\fR causes \fBtinybasic\fR to supply labels internally for each line that lacks them; care must be taken when labelling lines so that there is room for a sequence of numbers between one line label and the next. An argument of \fBo\fR or \fBoptional\fR makes line labels completely optional; those that are supplied need not be in sequence.
 .TP
 .BR \-N " " \fIlimit\fR ", " \-\-line\-number\-limit=\fIlimit\fR
-Specifies the largest numeric line label allowed in the BASIC program. The default is 255. The new limit may be up to 32767.
+Specifies the largest line label allowed in the BASIC program. The default is 255. The new limit may be up to 32767.
 .TP
 .BR \-o " " \fIcomment-option\fR ", " \-\-comments=\fIcomment-option\fR
 Enables or disables support for comments and blank lines in programs.
@@ -33,20 +33,16 @@ It can be \fBd\fR or \fBdisabled\fR to disable support for comments, which follo
 Specifies compilation or translation instead of interpretation, and what type of output is desired.
 Current \fIoutput\-type\fRs supported are \fBlst\fR for a formatted listing, or \fBc\fR for a C program ready to compile.
 The output filename is the same as the input filename, with an added extension the same as .\fIoutput\-type\fR.
-If the option is supplied without an \fIoutput\-type\fR, then the default is lst.
+If the option is supplied without an \fIoutput\-type\fR, then the default is \fBlst\fR.
 If the option is absent altogether, then the program will be interpreted rather than compiled or translated.
 .SH PROGRAM FORMAT
 Programs are text files loaded in on invoking \fBtinybasic\fR.
-Each line of the file consists of an optional numeric line label, a command keyword, and the command's arguments, if it has any.
+Each line of the file consists of an optional line label, a command keyword, and the command's parameters, if it has any.
 Lines may be blank, or the command keyword may be REM, which denotes that the rest of the program line is a comment.
 .PP
 That describes a program written using \fBtinybasic\fR's additional features.
-In a traditional Tiny BASIC program each line has a mandatory numeric line label, a command keyword which may not be REM, and the command's arguments.
-The original Tiny BASIC specification did not provide for comments or blank lines, and the numeric line labels were required by the language's interactive line editor.
-.PP
-Note that what this manual terms \'numeric line labels\' are usually called \'line numbers\' in traditional BASIC.
-But since tinybasic allows omission of these labels, errors are reported with the actual line number of the source file, which start at 1 and increment regardless of the numeric line labels in the program.
-It is to these source file line numbers that the term \'line numbers\' refers in this manual.
+In a traditional Tiny BASIC program each line has a mandatory line label, a command keyword which may not be REM, and the command's parameters.
+The original Tiny BASIC specification did not provide for comments or blank lines, and the line labels were required by the language's interactive line editor.
 .SH COMMANDS
 .TP
 .BR \fBLET\fR " " \fIvariable\fR = \fIexpression\fR
@@ -60,11 +56,11 @@ If \fIcondition\fR is true, then \fIstatement\fR is executed.
 .TP
 .BR \fBGOTO\fR " " \fIexpression\fR
 Transfer execution to another part of the program.
-\fIExpression\fR is evaluated, and program execution continues at the line marked with the appropriate numeric label.
+\fIExpression\fR is evaluated, and program execution continues at the line marked with the corresponding label.
 .TP
 .BR \fBGOSUB\fR " " \fIexpression\fR
 Calls a subroutine.
-\fIExpression\fR is evaluated, and program execution transfers to the line marked with the appropriate label.
+\fIExpression\fR is evaluated, and program execution transfers to the line marked with the corresponding label.
 The position of the \fBGOSUB\fR is remembered so that a \fBRETURN\fR can bring program execution back to the statement following the \fBGOSUB\fR.
 .TP
 .BR \fBRETURN\fR
@@ -78,12 +74,12 @@ Terminates program execution.
 Produces output to the console.
 \fIOutput-list\fR is a list of items separated by commas.
 Each item can be either a string literal enclosed in double quotation marks, or a numeric expression.
-An end of line sequence is output at the end, so that the next \fBPRINT\fR statement will put its output on a new line.
+An end of line sequence is output after all the values, so that the next \fBPRINT\fR statement will put its output on a new line.
 .TP
 .BR \fBINPUT\fR " " \fIvariable-list\fR
 Asks for input from the console.
 \fIVariable-list\fR is a list of variable names.
-For each variable given, a question mark is output and the value typed by the user is stored in that variable.
+For each variable given, a question mark is output and the value typed by the user is stored in that variable. \fBTinybasic\fR allows multiple values to be typed by the user on one line, each separated by any non-numeric character.
 .TP
 .BR \fBREM\fR " " \fIcomment-text\fR
 Provides space for free-format comment text in the program.
@@ -99,6 +95,50 @@ Standard operator precedence evaluates parentheses first, then unary signs, then
 The relational operators are \fB=\fR, \fB>\fR, \fB<\fR, \fB<>\fR or \fB><\fR, \fB>=\fR, and \fB<=\fR.
 They are not supported within arithmetic expressions, but can only be used as conditions in \fBIF\fR statements in the form:
 .BR \fIexpression\fR " " \fIrelational-operator\fR " " \fIexpression\fR
+.SH ERROR MESSAGES
+Program error messages can be in one of two forms:
+.PP
+Parse error: \fIdescription\fR, line \fIline-number\fR, label \fIline-label\fR
+.br
+Run-time error: \fIdescription\fR, label \fIline-label\fR
+.TP
+Parse errors are those that are detected before the program starts. Run-time errors are those that cannot be detected until the program is running. If a parse error is detected on a line without a label, then the label section is omitted from the error message. The error messages and their meanings are as follows.
+.TP
+.SS Invalid line number
+One of the following has occurred: (i) a line label is missing when line numbers are mandatory; (ii) a line label is lower than the previous one when line numbers are mandatory or implied.
+.TP
+.SS Unrecognised command
+The command keyword is not recognised. Note that \fBREM\fR will not be recognised when comments are disabled, and will produce this error.
+.TP
+.SS Invalid variable
+In a \fBLET\fR or \fBINPUT\fR statement, something other than a letter from \fBA\fR to \fBZ\fR was supplied when a variable name was expected.
+.TP
+.SS Invalid assignment
+The \fB=\fR sign was missing from a \fBLET\fR statement.
+.TP
+.SS Invalid expression
+An expression in this line is invalid. It is possibly lacking an operator, variable or value where one is expected.
+.TP
+.SS Missing )
+An expression contains a left parenthesis and no corresponding right parenthesis.
+.TP
+.SS Invalid PRINT output
+Something is wrong with the output list in a \fBPRINT\fR statement. It could be: (i) completely missing, (ii) missing a separator between two items, or (iii) missing an item between two separators or at the start or end of the list.
+.TP
+.SS Invalid operator
+An unrecognised operator was encountered in an expression or a condition.
+.TP
+.SS THEN expected
+The mandatory \fBTHEN\fR keyword is missing from its expected place in an \fBIF\fR statement.
+.TP
+.SS Unexpected parameter
+A parameter was given to a command that should not have one, such as \fBEND\fR or \fBRETURN\fR.
+.TP
+.SS RETURN without GOSUB
+A \fBRETURN\fR was encountered without having executed a \fBGOSUB\fR. This commonly occurs when a programmer forgets to put an \fBEND\fR or a \fBGOTO\fR before a subroutine, and allows execution to blunder into it.
+.TP
+.SS Divide by zero
+The divisor in an expression was \fB0\fR. If dividing by a variable or an expression, it is advisable to check beforehand that it cannot be zero. An intentional division by zero is not the most graceful way to stop a program.
 .SH VERSION INFORMATION
 This manual page documents \fBtinybasic\fR, version 1.0.
 .SH AUTHORS
