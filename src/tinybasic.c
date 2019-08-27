@@ -44,7 +44,7 @@ void tinybasic_option_line_numbers (char *option) {
   else if (! strncmp ("mandatory", option, strlen (option)))
     options_set_line_numbers (LINE_NUMBERS_MANDATORY);
   else
-    errors_set_code (E_BAD_COMMAND_LINE);
+    errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
 }
 
 /*
@@ -57,7 +57,7 @@ void tinybasic_option_line_limit (char *option) {
   if (sscanf (option, "%d", &limit))
     options_set_line_limit (limit);
   else
-    errors_set_code (E_BAD_COMMAND_LINE);
+    errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
 }
 
 /*
@@ -71,7 +71,7 @@ void tinybasic_option_comments (char *option) {
   else if (! strncmp ("disabled", option, strlen (option)))
     options_set_comments (COMMENTS_DISABLED);
   else
-    errors_set_code (E_BAD_COMMAND_LINE);
+    errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
 }
 
 /*
@@ -83,7 +83,7 @@ void tinybasic_option_output (char *option) {
   if (! strcmp ("lst", option))
     output = OUTPUT_LST;
   else
-    errors_set_code (E_BAD_COMMAND_LINE);
+    errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
 }
 
 
@@ -136,7 +136,7 @@ void tinybasic_options (int argc, char **argv) {
 
     /* raise an error upon illegal option */
     else
-      errors_set_code (E_BAD_COMMAND_LINE);
+      errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
   }
 }
 
@@ -171,7 +171,7 @@ void tinybasic_output_lst (ProgramNode *program) {
 
   /* deal with errors */
   else
-    errors_set_code (E_FILE_NOT_FOUND);
+    errors_set_code (E_FILE_NOT_FOUND, 0, 0);
 }
 
 
@@ -194,6 +194,7 @@ int main (int argc, char **argv) {
   FILE *input; /* input file */
   ProgramNode *program; /* the parsed program */
   ErrorCode code; /* error returned */
+  char *error_text; /* error text message */
 
   /* interpret the command line arguments */
   tinybasic_options (argc, argv);
@@ -215,7 +216,9 @@ int main (int argc, char **argv) {
 
   /* deal with errors */
   if ((code = errors_get_code ())) {
-    printf ("Parse error code: %d\n", code);
+    error_text = errors_text ();
+    printf ("Parse error: %s\n", error_text);
+    free (error_text);
     exit (code);
   }
 
@@ -223,8 +226,11 @@ int main (int argc, char **argv) {
   switch (output) {
     case OUTPUT_INTERPRET:
       interpret_program (program);
-      if ((code = errors_get_code ()))
-        printf ("Runtime error code: %d\n", code);
+      if ((code = errors_get_code ())) {
+        error_text = errors_text ();
+        printf ("Runtime error: %s\n", error_text);
+        free (error_text);
+      }
       break;
     case OUTPUT_LST:
       tinybasic_output_lst (program);
