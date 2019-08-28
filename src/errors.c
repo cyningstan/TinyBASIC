@@ -33,7 +33,7 @@ static char *messages[E_LAST] = { /* the error messages */
   "Unexpected parameter",
   "RETURN without GOSUB",
   "Divide by zero",
-  "Overflow",
+  "Overflow"
 };
 
 
