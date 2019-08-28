@@ -15,8 +15,8 @@
 
 /* global variables */
 static LanguageOptions options = { /* master language options */
-  LINE_NUMBERS_IMPLIED,
-  255,
+  LINE_NUMBERS_OPTIONAL,
+  32767,
   COMMENTS_ENABLED
 };
 
