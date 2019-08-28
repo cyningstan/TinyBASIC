@@ -89,7 +89,7 @@
     GOSUB 250
     LET A=1+A-A/5*5
     LET R=0
-    IF A>2 THEN GOTO 65
+    IF A>2 THEN GOTO 70
     GOSUB 250
     IF G>0 THEN LET R=1+A-A/G*G
 
