@@ -1,9 +1,12 @@
     REM
-    REM ** Hunt the Wumpus Game
-    REM ** A Test Program for Tiny BASIC
+    REM --- Tiny BASIC Interpreter and Compiler Project
+    REM --- Hunt the Wumpus Demonstration Game
+    REM
+    REM --- Released as Public Domain by Damian Gareth Walker 2019
+    REM --- Created: 08-Aug-2019
     REM
 
-    REM -- Variable List
+    REM --- Variable List
     REM
     REM A - Bat 1 position
     REM B - Bat 2 position
@@ -22,11 +25,11 @@
     REM S - random number generator seed
     REM W - Wumpus position
 
-    REM -- Intialise the random number generator
+    REM --- Intialise the random number generator
   1 PRINT "Think of a number"
     INPUT S
 
-    REM -- Initialise the player and hazard positions
+    REM --- Initialise the player and hazard positions
     LET A=0
     LET B=0
     LET C=0
@@ -34,7 +37,7 @@
     LET I=0
     LET W=0
 
-    REM -- Distribute the player and hazards across the map
+    REM --- Distribute the player and hazards across the map
     GOSUB 710
     LET A=J
     GOSUB 710
@@ -48,10 +51,10 @@
     GOSUB 710
     LET W=J
 
-    REM -- Introductory text
+    REM --- Introductory text
     PRINT "You enter the caves to Hunt the Wumpus!"
 
-    REM -- Main Game Loop
+    REM --- Main Game Loop
 500 PRINT "You are in room ",C
     LET P=C
     GOSUB 900
@@ -65,7 +68,7 @@
     IF M=2 THEN GOSUB 800
     GOTO 500
 
-    REM -- Subroutine to check for hazards
+    REM --- Subroutine to check for hazards
 
     REM Has the player encountered a bat?
 600 IF C<>A THEN IF C<>B THEN GOTO 610
@@ -99,7 +102,7 @@
     PRINT "You hear a loud squeaking and a flapping of wings."
 660 RETURN
 
-    REM Relocate the Wumpus
+    REM --- Relocate the Wumpus
 670 GOSUB 750
     LET R=R-(R/4*4)
     IF R=1 THEN LET W=E
@@ -109,7 +112,7 @@
     PRINT "The wumpus eats you!"
     END
 
-    REM Relocate bat and player
+    REM --- Relocate bat and player
 680 GOSUB 750
     LET R=R-(R/4*4)
     IF R=0 THEN RETURN
@@ -126,7 +129,7 @@
     LET C=D
     GOTO 680
 
-    REM -- Subroutine to move
+    REM --- Subroutine to move
 700 PRINT "Where?"
     INPUT D
     IF D<>E THEN IF D<>F THEN IF D<>G THEN GOTO 700
@@ -139,13 +142,13 @@
     IF J<>A THEN IF J<>B THEN IF J<>C THEN IF J<>H THEN IF J<>I THEN IF J<>W THEN RETURN
     GOTO 710
 
-    REM -- Random number generator
+    REM --- Random number generator
 750 LET S=5*S+35
     LET S=S-S/4096*4096
     LET R=S
     RETURN
 
-    REM -- Subroutine to shoot
+    REM --- Subroutine to shoot
 800 PRINT "Shoot how far (1-5)?"
     INPUT N
     IF N<1 THEN GOTO 800
@@ -167,7 +170,7 @@
 830 PRINT "You hit the wumpus!"
     END
 
-    REM -- Subroutine to set the exits
+    REM --- Subroutine to set the exits
     REM Input: P - current position
     REM Outputs: E, F, G (exits)
 900 IF P>=1 THEN IF P<=20 THEN GOTO 900+4*P

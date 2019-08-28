@@ -1,11 +1,14 @@
     REM
-    REM Mugwump
-    REM A Demonstration Program for Tiny BASIC
+    REM --- Tiny BASIC Interpreter and Compiler Project
+    REM --- Mugwump Demonstration Game
+    REM
+    REM --- Released as Public Domain by Damian Gareth Walker 2019
+    REM --- Created: 13-Aug-2019
     REM
 
     REM --- Variables
-    REM     C: column or row difference between player guess and mugwump position
-    REM     D: total distance between player guess and mugwump position
+    REM     C: axis diff between player guess and mugwump position
+    REM     D: distance between player guess and mugwump position
     REM     G: mugwump column
     REM     H: mugwump row
     REM     M: moves taken

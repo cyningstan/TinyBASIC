@@ -1,6 +1,9 @@
     REM
-    REM Hunt the Hurkle
-    REM A Demonstration Program for Tiny BASIC
+    REM --- Tiny BASIC Interpreter and Compiler Project
+    REM --- Hunt the Hurkle Demostration Game
+    REM
+    REM --- Released as Public Domain by Damian Gareth Walker 2019
+    REM --- Created: 11-Aug-2019
     REM
 
     REM --- Variables

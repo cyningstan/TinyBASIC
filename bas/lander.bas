@@ -1,6 +1,9 @@
     REM
-    REM --- Lunar Lander Game
-    REM --- A demonstration program for Tiny BASIC
+    REM --- Tiny BASIC Interpreter and Compiler Project
+    REM --- Lunar Lander Demonstration Game
+    REM
+    REM --- Released as Public Domain by Damian Gareth Walker 2019
+    REM --- Created: 15-Aug-2019
     REM
 
     REM --- Variables:

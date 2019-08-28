@@ -15,6 +15,7 @@
     REM G - The quantity of stored grain
     REM I - The number of immigrants on a given turn
     REM L - How much land the city owns
+    REM M - Maximum land that can be planted
     REM P - The number of people in the city
     REM R - The amount of grain eaten by rats
     REM S - The amount of grain planted as seed
@@ -38,42 +39,46 @@
     LET Y=3
 
     REM --- Print the report
- 20 PRINT "Hammurabi, I beg to report to you,"
-    PRINT "In year ",T,", ",D," people starved, and ",I," came to the city."
+ 15 PRINT "Hammurabi, I beg to report to you,"
+    PRINT "In year ",T,", ",D," people starved,"
+    PRINT "and ",I," came to the city."
     PRINT "You harvested ",Y," bushels of grain per acre."
     PRINT "Rats destroyed ",R," bushels."
-    PRINT "Population is now ",P,", and the city owns ",L," acres of land."
+    PRINT "Population is now ",P,","
+    PRINT "and the city owns ",L," acres of land."
     PRINT "You have ",G," bushels of grain in store."
 
     REM --- Buy land
     GOSUB 250
     LET V=17+A-A/10*10
     PRINT "Land is trading at ",V," bushels per acre."
- 30 PRINT "How many acres do you wish to buy?"
+ 30 PRINT "How many acres do you wish to buy (0-",G/V,")?"
     INPUT B
     IF B>G/V THEN GOTO 30
     IF B>0 THEN GOTO 40
 
     REM --- Sell land
- 35 PRINT "How many acres do you wish to sell?"
+ 35 PRINT "How many acres do you wish to sell (0-",L,")?"
     INPUT B
     IF B>L THEN GOTO 35
     LET B=-B
 
     REM --- Feed the people
- 40 PRINT "How many bushels do you wish to feed the people?"
+ 40 PRINT "How many bushels to feed the people (0-",G-B*V,")?"
     INPUT F
     IF F>=0 THEN IF F<=G-B*V THEN GOTO 45
     GOTO 40
 
     REM --- Plant with seed
- 45 PRINT "How many acres do you wish to plant with seed?"
+ 45 LET M=2*(G-F-B*V)
+    IF 10*P<M THEN LET M=10*P
+    IF L+B<M THEN LET M=L+B
+ 50 PRINT "How many acres do you wish to plant with seed (0-",M,")?"
     INPUT S
-    IF S>=0 THEN IF S/2<=G-F-B*V THEN IF S<=10*P THEN IF S<=L+B THEN GOTO 50
-    GOTO 45
+    IF S>M THEN GOTO 50
 
     REM --- Work out the result
- 50 LET L=L+B
+    LET L=L+B
     LET G=G-B*V-F-S/2
 
     REM Yield
@@ -89,7 +94,7 @@
     IF G>0 THEN LET R=1+A-A/G*G
 
     REM Recalculate grain
- 65 LET G=G+S*Y-R
+ 70 LET G=G+S*Y-R
     IF G<0 THEN LET G=0
 
     REM Immigration/Birth
@@ -105,7 +110,7 @@
  80 LET P=P-D+I
     IF P<=0 THEN GOTO 210
     LET T=T+1
-    IF T<=10 THEN GOTO 20
+    IF T<=10 THEN GOTO 15
 
     REM --- Victory
     PRINT "You have ruled well for 10 years."
