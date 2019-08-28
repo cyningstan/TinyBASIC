@@ -32,6 +32,7 @@ typedef enum {
   E_UNEXPECTED_PARAMETER, /* more parameters encountered than expected */
   E_RETURN_WITHOUT_GOSUB, /* return encountered without a GOSUB */
   E_DIVIDE_BY_ZERO, /* an attempt to divide by zero */
+  E_OVERFLOW, /* integer is out of range */
   E_LAST /* placeholder */
 } ErrorCode;
 

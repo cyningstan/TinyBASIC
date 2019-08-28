@@ -95,11 +95,12 @@
     REM Immigration/Birth
     GOSUB 250
     LET A=1+A-A/5*5
-    LET I=A*(20*L+S)/P/100+1
+    LET I=A*(L+S/20)/P/5+1
 
     REM Feeding the people
-    IF P<=F THEN GOTO 80
-    LET D=P-F
+    LET D=0
+    IF P<=F/20 THEN GOTO 80
+    LET D=P-F/20
     IF D>P*45/100 THEN GOTO 200
  80 LET P=P-D+I
     IF P<=0 THEN GOTO 210
@@ -122,7 +123,7 @@
     END
 
     REM --- Random Number Generator
-250 LET Z=8173*Z+35
-    LET Z=Z-Z/16384*16384
+250 LET Z=5*Z+35
+    LET Z=Z-Z/4096*4096
     LET A=Z
     RETURN

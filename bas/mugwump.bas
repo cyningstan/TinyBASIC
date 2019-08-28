@@ -65,6 +65,6 @@
     REM --- Random number generator
     REM     Input:   R - current seed
     REM     Outputs: R - updated seed
-200 LET R=8173*R+35
-    LET R=R-R/16384*16384
+200 LET R=5*R+35
+    LET R=R-R/4096*4096
     RETURN

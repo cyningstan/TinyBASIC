@@ -108,6 +108,8 @@ FactorNode *parse_factor (void) {
   if (token->class == TOKEN_NUMBER) {
     factor->class = FACTOR_VALUE;
     sscanf (token->content, "%d", &factor->data.value);
+    if (factor->data.value < -32768 || factor->data.value > 32767)
+      errors_set_code (E_OVERFLOW, start_line, last_label);
   }
 
   /* interpret a variable */

@@ -139,6 +139,9 @@ A \fBRETURN\fR was encountered without having executed a \fBGOSUB\fR. This commo
 .TP
 .SS Divide by zero
 The divisor in an expression was \fB0\fR. If dividing by a variable or an expression, it is advisable to check beforehand that it cannot be zero. An intentional division by zero is not the most graceful way to stop a program.
+.TP
+.SS Overflow
+When given as a parse error, there is a value in the program that is outside the range of \fB-32768\fR to \fB32767\fR. When given as a runtime error, an expression in the program or an input from the user has produced a result outside this range.
 .SH VERSION INFORMATION
 This manual page documents \fBtinybasic\fR, version 1.0.
 .SH AUTHORS

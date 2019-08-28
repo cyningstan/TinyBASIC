@@ -52,19 +52,40 @@ static int run_ended = 0; /* set to 1 when an END is encountered */
  *   FactorNode*   factor   the factor to evaluate
  */
 int interpret_factor (FactorNode *factor) {
+
+  /* local variables */
+  int result_store = 0; /* result of factor evaluation */
+
+  /* check factor class */
   switch (factor->class) {
+
+    /* a regular variable */
     case FACTOR_VARIABLE:
-      return variables[factor->data.variable - 1]
+      result_store = variables[factor->data.variable - 1]
         * (factor->sign == SIGN_POSITIVE ? 1 : -1);
-    case FACTOR_VALUE:
-      return factor->data.value * (factor->sign == SIGN_POSITIVE ? 1 : -1);
-    case FACTOR_EXPRESSION:
-      return interpret_expression (factor->data.expression)
-        * (factor->sign == SIGN_POSITIVE ? 1 : -1);
-    default:
       break;
+
+    /* an integer constant */
+    case FACTOR_VALUE:
+      result_store = factor->data.value * (factor->sign == SIGN_POSITIVE
+	? 1 : -1);
+      break;
+
+    /* an expression */
+    case FACTOR_EXPRESSION:
+      result_store = interpret_expression (factor->data.expression)
+        * (factor->sign == SIGN_POSITIVE ? 1 : -1);
+      break;
+
+    /* this only happens if the parser has failed in its duty */
+    default:
+      errors_set_code (E_INVALID_EXPRESSION, 0, current_line->label);
   }
-  return 0; /* needed for brain dead compiler */
+
+  /* check the result and return it*/
+  if (result_store < -32768 || result_store > 32767)
+    errors_set_code (E_OVERFLOW, 0, current_line->label);
+  return result_store;
 }
 
 
@@ -90,10 +111,12 @@ int interpret_term (TermNode *term) {
   rhfactor = term->next;
 
   /* adjust store according to successive rh factors */
-  while (rhfactor) {
+  while (rhfactor && ! errors_get_code ()) {
     switch (rhfactor->op) {
       case TERM_OPERATOR_MULTIPLY:
         result_store *= interpret_factor (rhfactor->factor);
+	if (result_store < -32768 || result_store > 32767)
+	  errors_set_code (E_OVERFLOW, 0, current_line->label);
         break;
       case TERM_OPERATOR_DIVIDE:
         if ((divisor = interpret_factor (rhfactor->factor)))
@@ -133,13 +156,17 @@ int interpret_expression (ExpressionNode *expression) {
   rhterm = expression->next;
 
   /* adjust store according to successive rh terms */
-  while (rhterm) {
+  while (rhterm && ! errors_get_code ()) {
     switch (rhterm->op) {
       case EXPRESSION_OPERATOR_PLUS:
         result_store += interpret_term (rhterm->term);
+	if (result_store < -32768 || result_store > 32767)
+	  errors_set_code (E_OVERFLOW, 0, current_line->label);
         break;
       case EXPRESSION_OPERATOR_MINUS:
         result_store -= interpret_term (rhterm->term);
+	if (result_store < -32768 || result_store > 32767)
+	  errors_set_code (E_OVERFLOW, 0, current_line->label);
         break;
       default:
         break;
@@ -357,8 +384,10 @@ void interpret_input_statement (InputStatementNode *inputn) {
     value = 0;
     do {
       value = 10 * value + (ch - '0');
+      if (value * sign < -32768 || value * sign > 32767)
+	errors_set_code (E_OVERFLOW, 0, current_line->label);
       ch = getchar ();
-    } while (ch >= '0' && ch <= '9');
+    } while (ch >= '0' && ch <= '9' && ! errors_get_code ());
     variables[variable->variable - 1] = sign * value;
     variable = variable->next;
   }

@@ -140,8 +140,8 @@
     GOTO 710
 
     REM -- Random number generator
-750 LET S=8173*S+35
-    LET S=S-S/16384*16384
+750 LET S=5*S+35
+    LET S=S-S/4096*4096
     LET R=S
     RETURN
 
