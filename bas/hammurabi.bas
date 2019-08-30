@@ -11,6 +11,7 @@
     REM A - A random number returned by the Random Number Generator
     REM B - The amount of land bought/sold by the player
     REM D - The number of people who died of starvation
+    REM E - Average percentage of deaths
     REM F - The amount of grain fed to the people
     REM G - The quantity of stored grain
     REM I - The number of immigrants on a given turn
@@ -30,6 +31,7 @@
 
     REM --- Initialise the game
     LET D=0
+    LET E=0
     LET G=2800
     LET I=5
     LET L=1000
@@ -47,6 +49,8 @@
     PRINT "Population is now ",P,","
     PRINT "and the city owns ",L," acres of land."
     PRINT "You have ",G," bushels of grain in store."
+    IF D>P*45/100 THEN GOTO 100
+    IF T=11 THEN GOTO 90
 
     REM --- Buy land
     GOSUB 250
@@ -106,21 +110,43 @@
     LET D=0
     IF P<=F/20 THEN GOTO 80
     LET D=P-F/20
-    IF D>P*45/100 THEN GOTO 200
+    LET E=((T-1)*E+(100*D/P))/(T+1)
  80 LET P=P-D+I
     IF P<=0 THEN GOTO 210
     LET T=T+1
-    IF T<=10 THEN GOTO 15
 
-    REM --- Victory
-    PRINT "You have ruled well for 10 years."
-    PRINT "You leave your city with ",P," people, "
-    PRINT L," acres of land and ",G," bushels of grain stored."
+    REM Back to report
+    PRINT ""
+    GOTO 15
+
+    REM --- Evaluation
+ 90 PRINT "Your reign ends after ",T-1," years."
+    PRINT "You leave your city with ",P," people."
+    PRINT "You have ",L," acres of land to support them."
+    PRINT G," bushels of grain remain in store."
+    PRINT ""
+    IF E<=3 THEN IF L/P>=10 THEN GOTO 110
+    IF E<=10 THEN IF L/P>=9 THEN GOTO 120
+    IF E<=33 THEN IF L/P>=7 THEN GOTO 130
+
+    REM --- Terrible performance - including premature end
+100 PRINT "Your performance has been so terrible that"
+    PRINT "you were driven from your throne after ",T," years!"
     END
 
-    REM --- Too many people starved
-200 PRINT "You let too many people starve in one year!"
-    PRINT "Riots in the streets have driven you from your throne."
+    REM --- Best performance
+110 PRINT "Your expert statesmanship is worthy of Hammurabi himself!"
+    PRINT "The city will honour your memory for all eternity."
+    END
+
+    REM --- Average performance
+120 PRINT "Your competent rule is appreciated by your citizens."
+    PRINT "They will remember you fondly for some time to come."
+    END
+
+    REM --- Poor performance
+130 PRINT "Your mismanagement left your city in a very poor state."
+    PRINT "Your incompetence and oppression will not be missed by your people."
     END
 
     REM --- Everybody starved
