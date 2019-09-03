@@ -39,6 +39,7 @@ StatementNode *parse_statement (void);
 /* global variables */
 static int last_label = 0; /* last line label encountered */
 static int current_line = 0; /* the last source line parsed */
+static int end_of_file = 0; /* an EOF has been encountered */
 static FILE *input; /* the input file */
 static Token *stored_token = NULL; /* token read ahead */
 
@@ -392,38 +393,6 @@ StatementClass get_statement_class (Token *token) {
   /* return the identified class */
   free (uccontent);
   return class;
-}
-
-
-/*
- * Skip the remainder of a line.
- * This is required during development only.
- * The final release will process all the lines fully.
- * globals:
- *   Token   *stored_token   Stores first token on next line.
- */
-void _skip_line (void) {
-
-  /* variable declarations */
-  int line;
-  Token *token = NULL;
-  TokenClass class;
-
-  /* retrieve last line */
-  line = tokeniser_get_line ();
-
-  /* read tokens till we hit the next line, or EOF */
-  do {
-    if (token) token_destroy (token);
-    token = get_token_to_parse (input);
-    class = token->class;
-  } while (tokeniser_get_line () == line && class != TOKEN_EOF);
-
-  /* store the first token from the next line */
-  if (class == TOKEN_EOF)
-    token_destroy (token);
-  else
-    stored_token = token;
 }
 
 
@@ -902,30 +871,36 @@ StatementNode *parse_statement () {
   /* check for command */
   switch ((class = get_statement_class (token))) {
     case STATEMENT_LET:
+      token_destroy (token);
       statement = parse_let_statement ();
       break;
     case STATEMENT_IF:
+      token_destroy (token);
       statement = parse_if_statement ();
       break;
     case STATEMENT_GOTO:
+      token_destroy (token);
       statement = parse_goto_statement ();
       break;
     case STATEMENT_GOSUB:
+      token_destroy (token);
       statement = parse_gosub_statement ();
       break;
     case STATEMENT_END:
+      token_destroy (token);
       statement = parse_end_statement ();
       break;
     case STATEMENT_PRINT:
+      token_destroy (token);
       statement = parse_print_statement ();
       break;
     case STATEMENT_INPUT:
+      token_destroy (token);
       statement = parse_input_statement ();
       break;
     case STATEMENT_RETURN:
-      statement = statement_create ();
-      statement->class = class;
-      _skip_line ();
+      token_destroy (token);
+      statement = parse_return_statement ();
       break;
     default:
       errors_set_code (E_UNRECOGNISED_COMMAND, token->line, last_label);
@@ -956,38 +931,45 @@ ProgramLineNode *parse_program_line (FILE *fh) {
   /* local variables */
   Token *token; /* token read */
   ProgramLineNode *program_line; /* program line read */
+  StatementNode *statement = NULL; /* statement */
 
   /* initialise the program line and get the first token */
   input = fh;
   program_line = program_line_create ();
   program_line->label = generate_default_label ();
-  token = get_token_to_parse ();
 
-  /* deal with end of file */
-  if (token->class == TOKEN_EOF) {
-    token_destroy (token);
-    program_line_destroy (program_line);
-    return NULL;
-  }
+  /* parse valid lines till a statement is found */
+  do {
+    token = get_token_to_parse ();
 
-  /* deal with line label, if supplied */
-  if (token->class == TOKEN_NUMBER) {
-    sscanf(token->content, "%d", &program_line->label);
-    token_destroy (token);
-  } else
-    stored_token = token;
+    /* deal with end of file */
+    if (token->class == TOKEN_EOF) {
+      end_of_file = !0;
+      token_destroy (token);
+      program_line_destroy (program_line);
+      return NULL;
+    }
 
-  /* validate the supplied or implied line label */
-  if (validate_line_label (program_line->label))
-    last_label = program_line->label;
-  else {
-    errors_set_code (E_INVALID_LINE_NUMBER, current_line, program_line->label);
-    program_line_destroy (program_line);
-    return NULL;
-  }
+    /* deal with line label, if supplied */
+    if (token->class == TOKEN_NUMBER) {
+      sscanf(token->content, "%d", &program_line->label);
+      token_destroy (token);
+    } else
+      stored_token = token;
 
-  /* check for command */
-  program_line->statement = parse_statement ();
+    /* validate the supplied or implied line label */
+    if (validate_line_label (program_line->label))
+      last_label = program_line->label;
+    else {
+      errors_set_code (E_INVALID_LINE_NUMBER, current_line, program_line->label);
+      program_line_destroy (program_line);
+      return NULL;
+    }
+
+    /* check for a valid statement */
+    statement = parse_statement ();
+  } while (! statement && ! end_of_file);
+  program_line->statement = statement;
 
   /* return the program line */
   return program_line;
