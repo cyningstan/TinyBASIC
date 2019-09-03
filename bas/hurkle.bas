@@ -28,7 +28,7 @@
     REM --- Input player guess
  30 PRINT "Where is the hurkle? Enter column then row."
     INPUT X,Y
-    IF X>=0 THEN IF X<=9 THEN IF Y>=0 THEN IF Y<=9 THEN GOTO 20
+    IF X>=0 THEN IF X<=9 THEN IF Y>=0 THEN IF Y<=9 THEN GOTO 40
     PRINT "That location is off the grid!"
     GOTO 30
 

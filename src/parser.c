@@ -905,9 +905,17 @@ ProgramLineNode *parse_program_line (FILE *fh) {
 
   /* check for a statement and an EOL */
   program_line->statement = parse_statement ();
+  /**/if (program_line->statement)
+    /**/printf ("Parsed: [%s]\n", program_line_output (program_line));
+  /**/else
+    /**/printf ("Parsed blank line or comment.\n");
   token = get_token_to_parse ();
   if (token->class != TOKEN_EOL && token->class != TOKEN_EOF)
+  /**/{
+    /**/printf ("[%s:%d]\n", __FILE__, __LINE__);
+    /**/printf ("[token %d content %s]\n", token->class, token->content);
     errors_set_code (E_UNEXPECTED_PARAMETER, current_line, last_label);
+  /**/}
 
   /* return the program line */
   return program_line;
@@ -940,8 +948,7 @@ ProgramNode *parse_program (FILE *input) {
 
   /* read lines until reaching an error or end of input */
   while ((current = parse_program_line (input))
-    && ! errors_get_code ()
-    && ! end_of_file) {
+    && ! errors_get_code ()) {
     if (previous)
       previous->next = current;
     else

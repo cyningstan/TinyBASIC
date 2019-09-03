@@ -403,7 +403,17 @@ void interpret_input_statement (InputStatementNode *inputn) {
  *   StatementNode*   statement   the statement to interpret
  */
 void interpret_statement (StatementNode *statement) {
+
+  /* skip comments */
+  if (! statement) {
+    current_line = current_line->next;
+    return;
+  }
+
+  /* interpret real statements */
   switch (statement->class) {
+    case STATEMENT_NONE:
+      break;
     case STATEMENT_LET:
       interpret_let_statement (statement->statement.letn);
       break;
@@ -420,8 +430,8 @@ void interpret_statement (StatementNode *statement) {
       interpret_return_statement ();
       break;
     case STATEMENT_END:
-      run_ended = 1;
-      break;
+       run_ended = 1;
+     break;
     case STATEMENT_PRINT:
       interpret_print_statement (statement->statement.printn);
       break;
