@@ -144,14 +144,20 @@ void tokeniser_store_character (TokeniserState *state) {
  */
 void tokeniser_default_mode (TokeniserState *state) {
 
-  /* deal with whitespace */
+  /* deal with non-EOL whitespace */
   if (state->ch == ' ' ||
-      state->ch == '\t' ||
-      state->ch == '\r' ||
-      state->ch == '\n') {
+      state->ch == '\t') {
     state->ch = tokeniser_read_character (state);
     start_line = line;
     start_pos = pos;
+  }
+
+  /* deal with EOL whitespace */
+  else if (state->ch == '\n') {
+    start_line = line;
+    start_pos = pos;
+    state->token = token_create_initialise
+      (TOKEN_EOL, start_line, start_pos, state->content);
   }
 
   /* alphabetic characters start a word */
@@ -249,7 +255,7 @@ void tokeniser_word_mode (TokeniserState *state) {
       state->mode = COMMENT_MODE;
     }
   }
-    
+
 }
 
 /*
@@ -428,6 +434,8 @@ Token *tokeniser_next_token (FILE *input) {
   free (state.content);
 
   /* return result */
+/**/printf ("Token class=%d line=%d pos=%d content=%s.\n", return_token->class, 
+/**/return_token->line, return_token->pos, return_token->content);
   return return_token;
 
 }

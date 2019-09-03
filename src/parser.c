@@ -39,6 +39,7 @@ StatementNode *parse_statement (void);
 /* global variables */
 static int last_label = 0; /* last line label encountered */
 static int current_line = 0; /* the last source line parsed */
+static int end_of_file = 0; /* end of file signal */
 static FILE *input; /* the input file */
 static Token *stored_token = NULL; /* token read ahead */
 
@@ -90,8 +91,10 @@ Token *get_token_to_parse () {
   } else
     token = tokeniser_next_token (input);
 
-  /* store the line and return the token */
+  /* store the line, check EOF and return the token */
   current_line = token->line;
+  if (token->class == TOKEN_EOF)
+    end_of_file = !0;
   return token;
 }
 
@@ -885,6 +888,10 @@ StatementNode *parse_statement () {
 
   /* check for command */
   switch ((class = get_statement_class (token))) {
+    case STATEMENT_NONE:
+      token_destroy (token);
+      statement = NULL;
+      break;
     case STATEMENT_LET:
       token_destroy (token);
       statement = parse_let_statement ();
@@ -942,6 +949,7 @@ StatementNode *parse_statement () {
  *   StatementNode           a fully-assembled statement, hopefully.
  */
 ProgramLineNode *parse_program_line (FILE *fh) {
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* local variables */
   Token *token; /* token read */
@@ -949,14 +957,20 @@ ProgramLineNode *parse_program_line (FILE *fh) {
 
   /* initialise the program line and get the first token */
   input = fh;
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   program_line = program_line_create ();
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   program_line->label = generate_default_label ();
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   token = get_token_to_parse ();
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* deal with end of file */
   if (token->class == TOKEN_EOF) {
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
     token_destroy (token);
     program_line_destroy (program_line);
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
     return NULL;
   }
 
@@ -966,6 +980,7 @@ ProgramLineNode *parse_program_line (FILE *fh) {
     token_destroy (token);
   } else
     stored_token = token;
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* validate the supplied or implied line label */
   if (validate_line_label (program_line->label))
@@ -975,9 +990,11 @@ ProgramLineNode *parse_program_line (FILE *fh) {
     program_line_destroy (program_line);
     return NULL;
   }
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* check for command */
   program_line->statement = parse_statement ();
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* return the program line */
   return program_line;
@@ -997,6 +1014,7 @@ ProgramLineNode *parse_program_line (FILE *fh) {
  *   ProgramNode*    a pointer to the whole program
  */
 ProgramNode *parse_program (FILE *input) {
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* local varables */
   ProgramNode *program; /* the stored program */
@@ -1010,13 +1028,16 @@ ProgramNode *parse_program (FILE *input) {
 
   /* read lines until reaching an error or end of input */
   while ((current = parse_program_line (input))
-    && ! errors_get_code ()) {
+    && ! errors_get_code ()
+    && ! end_of_file) {
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
     if (previous)
       previous->next = current;
     else
       program->first = current;
     previous = current;
   }
+/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* return the program */
   return program;
