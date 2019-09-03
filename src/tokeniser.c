@@ -126,21 +126,6 @@ void tokeniser_store_character (TokeniserState *state) {
 
 }
 
-/*
- * Skip a comment line after a REM is encountered
- * globals:
- *   int     pos     character position after the line is skipped
- * params:
- *   FILE*   input   the input file handle
- */
-void tokeniser_skip_comment (FILE *input) {
-  int ch;
-  do {
-    ch = fgetc (input);
-  } while (ch != '\n' && ch != EOF);
-  pos = 0;
-}
-
 
 /*
  * Level 1 Tokeniser Routines

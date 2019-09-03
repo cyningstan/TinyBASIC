@@ -39,9 +39,33 @@ StatementNode *parse_statement (void);
 /* global variables */
 static int last_label = 0; /* last line label encountered */
 static int current_line = 0; /* the last source line parsed */
-static int end_of_file = 0; /* an EOF has been encountered */
 static FILE *input; /* the input file */
 static Token *stored_token = NULL; /* token read ahead */
+
+
+/*
+ * Service level routines
+ */
+
+/*
+ * Portable case-insensitive comparison
+ * params:
+ *   char*   a   string to compare
+ *   char*   b   string to compare to
+ * returns:
+ *   int         -1 if a<b, 0 if a==b, 1 if a>b
+ */
+static int parser_strcmp (char *a, char *b) {
+  do {
+    if (toupper (*a) != toupper (*b))
+      return (toupper (*a) > toupper (*b)) - (toupper (*a) < toupper (*b));
+    else {
+      a++;
+      b++;
+    }
+  } while (*a && *b);
+  return 0;
+}
 
 
 /*
@@ -356,42 +380,33 @@ int validate_line_label (int label) {
 StatementClass get_statement_class (Token *token) {
 
   /* local variables */
-  char *uccontent, /* contents of the token in upper case */
-    *ucptr; /* pointer for upper case conversion */
-  StatementClass class; /* class identified */
-
-  /* check that this is a word */
-  if (token->class != TOKEN_WORD)
-    return STATEMENT_NONE;
-
-  /* create an upper case copy */
-  uccontent = malloc (strlen (token->content) + 1);
-  strcpy (uccontent, token->content);
-  for (ucptr = uccontent; *ucptr; ++ucptr)
-    *ucptr = toupper (*ucptr);
+  StatementClass class = STATEMENT_NONE; /* class identified */
 
   /* identify the command */
-  if (! strcmp (uccontent, "LET"))
+  if (token->class == TOKEN_EOL)
+    class = STATEMENT_NONE;
+  else if (token->class != TOKEN_WORD)
+    errors_set_code (E_UNRECOGNISED_COMMAND, current_line, last_label);
+  else if (! parser_strcmp (token->content, "LET"))
     class = STATEMENT_LET;
-  else if (! strcmp (uccontent, "IF"))
+  else if (! parser_strcmp (token->content, "IF"))
     class = STATEMENT_IF;
-  else if (! strcmp (uccontent, "GOTO"))
+  else if (! parser_strcmp (token->content, "GOTO"))
     class = STATEMENT_GOTO;
-  else if (! strcmp (uccontent, "GOSUB"))
+  else if (! parser_strcmp (token->content, "GOSUB"))
     class = STATEMENT_GOSUB;
-  else if (! strcmp (uccontent, "RETURN"))
+  else if (! parser_strcmp (token->content, "RETURN"))
     class = STATEMENT_RETURN;
-  else if (! strcmp (uccontent, "END"))
+  else if (! parser_strcmp (token->content, "END"))
     class = STATEMENT_END;
-  else if (! strcmp (uccontent, "PRINT"))
+  else if (! parser_strcmp (token->content, "PRINT"))
     class = STATEMENT_PRINT;
-  else if (! strcmp (uccontent, "INPUT"))
+  else if (! parser_strcmp (token->content, "INPUT"))
     class = STATEMENT_INPUT;
   else
-    class = STATEMENT_NONE;
+    errors_set_code (E_UNRECOGNISED_COMMAND, current_line, last_label);
 
   /* return the identified class */
-  free (uccontent);
   return class;
 }
 
@@ -528,7 +543,7 @@ StatementNode *parse_if_statement (void) {
       strcpy (uccontent, token->content);
       for (ucptr = uccontent; *ucptr; ++ucptr)
         *ucptr = toupper (*ucptr);
-      if (strcmp (uccontent, "THEN"))
+      if (parser_strcmp (uccontent, "THEN"))
         errors_set_code (E_THEN_EXPECTED, token->line, last_label);
       free (uccontent);
     }
@@ -931,45 +946,38 @@ ProgramLineNode *parse_program_line (FILE *fh) {
   /* local variables */
   Token *token; /* token read */
   ProgramLineNode *program_line; /* program line read */
-  StatementNode *statement = NULL; /* statement */
 
   /* initialise the program line and get the first token */
   input = fh;
   program_line = program_line_create ();
   program_line->label = generate_default_label ();
+  token = get_token_to_parse ();
 
-  /* parse valid lines till a statement is found */
-  do {
-    token = get_token_to_parse ();
+  /* deal with end of file */
+  if (token->class == TOKEN_EOF) {
+    token_destroy (token);
+    program_line_destroy (program_line);
+    return NULL;
+  }
 
-    /* deal with end of file */
-    if (token->class == TOKEN_EOF) {
-      end_of_file = !0;
-      token_destroy (token);
-      program_line_destroy (program_line);
-      return NULL;
-    }
+  /* deal with line label, if supplied */
+  if (token->class == TOKEN_NUMBER) {
+    sscanf(token->content, "%d", &program_line->label);
+    token_destroy (token);
+  } else
+    stored_token = token;
 
-    /* deal with line label, if supplied */
-    if (token->class == TOKEN_NUMBER) {
-      sscanf(token->content, "%d", &program_line->label);
-      token_destroy (token);
-    } else
-      stored_token = token;
+  /* validate the supplied or implied line label */
+  if (validate_line_label (program_line->label))
+    last_label = program_line->label;
+  else {
+    errors_set_code (E_INVALID_LINE_NUMBER, current_line, program_line->label);
+    program_line_destroy (program_line);
+    return NULL;
+  }
 
-    /* validate the supplied or implied line label */
-    if (validate_line_label (program_line->label))
-      last_label = program_line->label;
-    else {
-      errors_set_code (E_INVALID_LINE_NUMBER, current_line, program_line->label);
-      program_line_destroy (program_line);
-      return NULL;
-    }
-
-    /* check for a valid statement */
-    statement = parse_statement ();
-  } while (! statement && ! end_of_file);
-  program_line->statement = statement;
+  /* check for command */
+  program_line->statement = parse_statement ();
 
   /* return the program line */
   return program_line;
