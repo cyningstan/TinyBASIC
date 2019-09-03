@@ -434,8 +434,6 @@ Token *tokeniser_next_token (FILE *input) {
   free (state.content);
 
   /* return result */
-/**/printf ("Token class=%d line=%d pos=%d content=%s.\n", return_token->class, 
-/**/return_token->line, return_token->pos, return_token->content);
   return return_token;
 
 }

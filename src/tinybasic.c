@@ -154,7 +154,6 @@ void tinybasic_output_lst (ProgramNode *program) {
   char *text; /* the text of a statement we're listing */
 
   /* open the output file */
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   output_filename = malloc (strlen (input_filename) + 5);
   sprintf (output_filename, "%s.lst", input_filename);
   if ((output = fopen (output_filename, "w"))) {
@@ -162,24 +161,18 @@ void tinybasic_output_lst (ProgramNode *program) {
     /* write to the output file */
     program_line = program->first;
     while (program_line) {
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
-      text = program_line_output (program_line);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
-      fprintf (output, "%s", text);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
-      free (text);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
+      if ((text = program_line_output (program_line))) {
+        fprintf (output, "%s", text);
+        free (text);
+      }
       program_line = program_line->next;
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
     }
     fclose (output);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   }
 
   /* deal with errors */
   else
     errors_set_code (E_FILE_NOT_FOUND, 0, 0);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 }
 
 
@@ -221,7 +214,6 @@ int main (int argc, char **argv) {
 
   /* get the parse tree */
   program = parse_program (input);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* deal with errors */
   if ((code = errors_get_code ())) {
@@ -230,22 +222,18 @@ int main (int argc, char **argv) {
     free (error_text);
     exit (code);
   }
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* perform the desired action */
   switch (output) {
     case OUTPUT_INTERPRET:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       interpret_program (program);
       if ((code = errors_get_code ())) {
         error_text = errors_text ();
         printf ("Runtime error: %s\n", error_text);
         free (error_text);
       }
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       break;
     case OUTPUT_LST:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       tinybasic_output_lst (program);
       break;
   }

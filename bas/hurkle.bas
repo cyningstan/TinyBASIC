@@ -26,14 +26,14 @@
     LET M=0
 
     REM --- Input player guess
- 10 PRINT "Where is the hurkle? Enter column then row."
+ 30 PRINT "Where is the hurkle? Enter column then row."
     INPUT X,Y
     IF X>=0 THEN IF X<=9 THEN IF Y>=0 THEN IF Y<=9 THEN GOTO 20
     PRINT "That location is off the grid!"
-    GOTO 10
+    GOTO 30
 
     REM --- Process player guess
- 20 LET M=M+1
+ 40 LET M=M+1
     PRINT "The Hurkle is..."
     IF G<X THEN IF H<Y THEN PRINT "...to the northwest."
     IF G=X THEN IF H<Y THEN PRINT "...to the north."
@@ -43,18 +43,18 @@
     IF G=X THEN IF H>Y THEN PRINT "...to the south."
     IF G<X THEN IF H>Y THEN PRINT "...to the southwest."
     IF G<X THEN IF H=Y THEN PRINT "...to the west."
-    IF G=X THEN IF H=Y THEN GOTO 40
-    IF M>6 THEN GOTO 50
+    IF G=X THEN IF H=Y THEN GOTO 60
+    IF M>6 THEN GOTO 70
     PRINT "You have taken ",M," turns so far."
-    GOTO 10
+    GOTO 30
 
     REM --- Player has won
- 40 PRINT "...RIGHT HERE!"
+ 60 PRINT "...RIGHT HERE!"
     PRINT "You took ",M," turns to find it."
     END
 
     REM --- Player has lost
- 50 PRINT "You have taken too long over this. You lose!"
+ 70 PRINT "You have taken too long over this. You lose!"
     END
 
     REM --- Random number generator

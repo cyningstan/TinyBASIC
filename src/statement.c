@@ -579,68 +579,46 @@ void statement_destroy (StatementNode *statement) {
  *   char*                        a string containing the statement line
  */
 char *statement_output (StatementNode *statement) {
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* local variables */
   char *output = NULL; /* the text output */
 
-if (! statement) {
-      output = malloc (24);
-      strcpy (output, "Unrecognised statement.");
-  return output;
-}
+  /* return null output for comments */
+  if (! statement)
+    return NULL;
 
   /* build the statement itself */
   switch (statement->class) {
     case STATEMENT_LET:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       output = statement_output_let (statement->statement.letn);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       break;
     case STATEMENT_IF:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       output = statement_output_if (statement->statement.ifn);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       break;
     case STATEMENT_GOTO:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       output = statement_output_goto (statement->statement.goton);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       break;
     case STATEMENT_GOSUB:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       output = statement_output_gosub (statement->statement.gosubn);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       break;
     case STATEMENT_RETURN:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       output = statement_output_return ();
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       break;
     case STATEMENT_END:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       output = statement_output_end ();
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
-      break;
+     break;
     case STATEMENT_PRINT:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       output = statement_output_print (statement->statement.printn);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       break;
     case STATEMENT_INPUT:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       output = statement_output_input (statement->statement.inputn);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       break;
     default:
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
       output = malloc (24);
       strcpy (output, "Unrecognised statement.");
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   }
 
   /* return the listing line */
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   return output;
 }
 
@@ -708,18 +686,22 @@ char *program_line_output (ProgramLineNode *program_line) {
     sprintf (label_text, "%5d ", program_line->label);
   else
     strcpy (label_text, "      ");
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* build the statement itself */
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   output = statement_output (program_line->statement);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
-  /* combine the two */
-  line = malloc (strlen (label_text) + strlen (output) + 2);
-  sprintf (line, "%s%s\n", label_text, output);
-  free (output);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
+  /* if this wasn't a comment, combine the two */
+  if (output) {
+    line = malloc (strlen (label_text) + strlen (output) + 2);
+    sprintf (line, "%s%s\n", label_text, output);
+    free (output);
+  }
+
+  /* if this was a comment, remove the line altogether */
+  else {
+    free (line);
+    line = NULL;
+  }
 
   /* return the listing line */
   return line;

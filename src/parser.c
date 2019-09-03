@@ -473,15 +473,6 @@ StatementNode *parse_let_statement (void) {
     return NULL;
   }
 
-  /* check for a line end */
-  line = token->line;
-  stored_token = token = get_token_to_parse ();
-  if (token->class != TOKEN_EOF && token->line == line) {
-    errors_set_code (E_INVALID_EXPRESSION, line, last_label);
-    statement_destroy (statement);
-    return NULL;
-  }
-
   /* return the statement */
   return statement;
 }
@@ -618,67 +609,25 @@ StatementNode *parse_gosub_statement (void) {
 
 /*
  * Parse an RETURN statement
- * globals:
- *   Token*   stored_token   The token after the RETURN statement
  * returns:
  *   StatementNode*          The statement assembled
  */
 StatementNode *parse_return_statement (void) {
-
-  /* local variables */
-  Token *token; /* token read to ensure the line contains only RETURN */
-  StatementNode *statement = NULL; /* the RETURN */
-  int line; /* line on which the RETURN token appeared */
-
-  /* check that there's nothing on this line after the RETURN */
-  line = tokeniser_get_line ();
-  token = get_token_to_parse ();
-  if (token->class == TOKEN_EOF || token->line > line) {
-    statement = statement_create ();
-    statement->class = STATEMENT_RETURN;
-    stored_token = token;
-  }
-
-  /* if there is, raise an error and clean up the mess */
-  else {
-    errors_set_code (E_UNEXPECTED_PARAMETER, token->line, last_label);
-    token_destroy (token);
-  }
-
-  /* return the statement */
+  StatementNode *statement; /* the RETURN */
+  statement = statement_create ();
+  statement->class = STATEMENT_RETURN;
   return statement;
 }
 
 /*
  * Parse an END statement
- * globals:
- *   Token*   stored_token   The token after the END statement
  * returns:
  *   StatementNode*          The statement assembled
  */
 StatementNode *parse_end_statement (void) {
-
-  /* local variables */
-  Token *token; /* token read to ensure the line contains only END */
   StatementNode *statement = NULL; /* the END */
-  int line; /* line on which the END token appeared */
-
-  /* check that there's nothing on this line after the END */
-  line = tokeniser_get_line ();
-  token = get_token_to_parse ();
-  if (token->class == TOKEN_EOF || token->line > line) {
-    statement = statement_create ();
-    statement->class = STATEMENT_END;
-    stored_token = token;
-  }
-
-  /* if there is, raise an error and clean up the mess */
-  else {
-    errors_set_code (E_UNEXPECTED_PARAMETER, token->line, last_label);
-    token_destroy (token);
-  }
-
-  /* return the statement */
+  statement = statement_create ();
+  statement->class = STATEMENT_END;
   return statement;
 }
 
@@ -694,9 +643,7 @@ StatementNode *parse_print_statement (void) {
   /* local variables */
   Token *token; /* tokens read as part of the statement */
   StatementNode *statement; /* the statement we're building */
-  int
-    line, /* line containing the PRINT token */
-    print_done = 0; /* 1 when the end of the PRINT statement is reached */
+  int line; /* line containing the PRINT token */
   OutputNode
     *nextoutput = NULL, /* the next output node we're parsing */
     *lastoutput = NULL; /* the last output node we parsed */
@@ -717,7 +664,6 @@ StatementNode *parse_print_statement (void) {
       errors_set_code (E_INVALID_PRINT_OUTPUT, line, last_label);
       statement_destroy (statement);
       statement = NULL;
-      print_done = 1;
     }
 
     /* process a literal string */
@@ -742,7 +688,6 @@ StatementNode *parse_print_statement (void) {
         errors_set_code (E_INVALID_PRINT_OUTPUT, token->line, last_label);
         statement_destroy (statement);
         statement = NULL;
-        print_done = 1;
       }
     }
 
@@ -754,25 +699,15 @@ StatementNode *parse_print_statement (void) {
         statement->statement.printn->first = nextoutput;
       lastoutput = nextoutput;
       token = get_token_to_parse ();
-
-      /* if we meet a comma, it means there's another output item */
-      if (token->class == TOKEN_SYMBOL && ! strcmp (token->content, ","))
-        continue;
-
-      /* anything other than an EOL or EOF at this point is an error */
-      if (token->class != TOKEN_EOF && token->line == line) {
-        errors_set_code (E_INVALID_PRINT_OUTPUT, token->line, last_label);
-        statement_destroy (statement);
-        statement = NULL;
-      }
-
-      /* error or not, we're done with the PRINT statement now */
-      print_done = 1;
-      stored_token = token;
     }
-  } while (! print_done);
 
-  /* return the assembled statement */
+  /* continue the loop until the PRINT statement appears to be finished */
+  } while (! errors_get_code ()
+    && token->class == TOKEN_SYMBOL
+    && ! strcmp (token->content, ","));
+
+  /* push back the last token and return the assembled statement */
+  stored_token = token;
   return statement;
 }
 
@@ -788,9 +723,7 @@ StatementNode *parse_input_statement (void) {
   /* local variables */
   Token *token; /* tokens read as part of the statement */
   StatementNode *statement; /* the statement we're building */
-  int
-    line, /* line containing the INPUT token */
-    input_done = 0; /* 1 when the end of the INPUT statement is reached */
+  int line; /* line containing the INPUT token */
   VariableListNode
     *nextvar = NULL, /* the next variable node we're parsing */
     *lastvar = NULL; /* the last variable node we parsed */
@@ -810,7 +743,6 @@ StatementNode *parse_input_statement (void) {
       errors_set_code (E_INVALID_VARIABLE, line, last_label);
       statement_destroy (statement);
       statement = NULL;
-      input_done = 1;
     }
 
     /* attempt to process an variable name */
@@ -841,25 +773,13 @@ StatementNode *parse_input_statement (void) {
         statement->statement.inputn->first = nextvar;
       lastvar = nextvar;
       token = get_token_to_parse ();
-
-      /* if we meet a comma, it means there's another variable */
-      if (token->class == TOKEN_SYMBOL && ! strcmp (token->content, ","))
-        continue;
-
-      /* anything other than an EOL or EOF at this point is an error */
-      if (token->class != TOKEN_EOF && token->line == line) {
-        errors_set_code (E_INVALID_VARIABLE, token->line, last_label);
-        statement_destroy (statement);
-        statement = NULL;
-      }
-
-      /* error or not, we're done with the PRINT statement now */
-      input_done = 1;
-      stored_token = token;
     }
-  } while (! input_done);
+  } while (! errors_get_code ()
+    && token->class == TOKEN_SYMBOL
+    && ! strcmp (token->content, ","));
 
   /* return the assembled statement */
+  stored_token = token;
   return statement;
 }
 
@@ -870,7 +790,7 @@ StatementNode *parse_input_statement (void) {
 
 
 /*
- * Parse an statment from the source file
+ * Parse a statement from the source file
  * globals:
  *   Token             *stored_token   a token already pre-read.
  * returns:
@@ -949,7 +869,6 @@ StatementNode *parse_statement () {
  *   StatementNode           a fully-assembled statement, hopefully.
  */
 ProgramLineNode *parse_program_line (FILE *fh) {
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* local variables */
   Token *token; /* token read */
@@ -957,20 +876,14 @@ ProgramLineNode *parse_program_line (FILE *fh) {
 
   /* initialise the program line and get the first token */
   input = fh;
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   program_line = program_line_create ();
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   program_line->label = generate_default_label ();
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
   token = get_token_to_parse ();
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* deal with end of file */
   if (token->class == TOKEN_EOF) {
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
     token_destroy (token);
     program_line_destroy (program_line);
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
     return NULL;
   }
 
@@ -980,21 +893,21 @@ ProgramLineNode *parse_program_line (FILE *fh) {
     token_destroy (token);
   } else
     stored_token = token;
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* validate the supplied or implied line label */
   if (validate_line_label (program_line->label))
     last_label = program_line->label;
   else {
-    errors_set_code (E_INVALID_LINE_NUMBER, current_line, program_line->label);
+    errors_set_code (E_INVALID_LINE_NUMBER, current_line, last_label);
     program_line_destroy (program_line);
     return NULL;
   }
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
-  /* check for command */
+  /* check for a statement and an EOL */
   program_line->statement = parse_statement ();
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
+  token = get_token_to_parse ();
+  if (token->class != TOKEN_EOL && token->class != TOKEN_EOF)
+    errors_set_code (E_UNEXPECTED_PARAMETER, current_line, last_label);
 
   /* return the program line */
   return program_line;
@@ -1014,7 +927,6 @@ ProgramLineNode *parse_program_line (FILE *fh) {
  *   ProgramNode*    a pointer to the whole program
  */
 ProgramNode *parse_program (FILE *input) {
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* local varables */
   ProgramNode *program; /* the stored program */
@@ -1030,14 +942,12 @@ ProgramNode *parse_program (FILE *input) {
   while ((current = parse_program_line (input))
     && ! errors_get_code ()
     && ! end_of_file) {
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
     if (previous)
       previous->next = current;
     else
       program->first = current;
     previous = current;
   }
-/**/printf ("[%s:%d]\n", __FILE__, __LINE__);
 
   /* return the program */
   return program;
