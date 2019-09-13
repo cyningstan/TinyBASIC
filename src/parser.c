@@ -59,7 +59,8 @@ static Token *stored_token = NULL; /* token read ahead */
 static int parser_strcmp (char *a, char *b) {
   do {
     if (toupper (*a) != toupper (*b))
-      return (toupper (*a) > toupper (*b)) - (toupper (*a) < toupper (*b));
+      return (toupper (*a) > toupper (*b))
+        - (toupper (*a) < toupper (*b));
     else {
       a++;
       b++;
@@ -162,7 +163,8 @@ FactorNode *parse_factor (void) {
         factor->class = FACTOR_EXPRESSION;
         factor->data.expression = expression;
       } else {
-        errors_set_code (E_MISSING_RIGHT_PARENTHESIS, start_line, last_label);
+        errors_set_code (E_MISSING_RIGHT_PARENTHESIS, start_line, 
+          last_label);
         factor_destroy (factor);
         factor = NULL;
         expression_destroy (expression);
@@ -239,11 +241,12 @@ TermNode *parse_term (void) {
         rhptr = rhfactor;
       }
 
-      /* set an error condition if we read an operator but not a factor */
+      /* set an error if we read an operator but not a factor */
       else {
         rhfactor_destroy (rhfactor);
         if (! errors_get_code ()) /* belt & braces */
-          errors_set_code (E_INVALID_EXPRESSION, token->line, last_label);
+          errors_set_code (E_INVALID_EXPRESSION, token->line, 
+            last_label);
       }
 
       /* clean up token */
@@ -267,16 +270,16 @@ TermNode *parse_term (void) {
 /*
  * Parse an expression
  * returns:
- *   ExpressionNode*   a new expression node holding the parsed expression
+ *   ExpressionNode*    the parsed expression
  */
 ExpressionNode *parse_expression (void) {
 
   /* local variables */
-  ExpressionNode *expression = NULL; /* the expression we're building */
+  ExpressionNode *expression = NULL; /* the expression we build */
   TermNode *term; /* term detected */
   RightHandTerm
     *rhterm = NULL, /* the right-hand term detected */
-    *rhptr = NULL; /* pointer to the previous right-hand term, if any */
+    *rhptr = NULL; /* pointer to the previous right-hand term */
   Token *token; /* token read when scanning for right-hand terms */
 
   /* scan the first term */
@@ -311,7 +314,8 @@ ExpressionNode *parse_expression (void) {
       else {
         rhterm_destroy (rhterm);
         if (! errors_get_code ()) /* belt & braces */
-          errors_set_code (E_INVALID_EXPRESSION, token->line, last_label);
+          errors_set_code (E_INVALID_EXPRESSION, token->line, 
+            last_label);
       }
 
       /* clean up token */
@@ -359,11 +363,12 @@ int validate_line_label (int label) {
   if (label < 0 || label > options_get ().line_limit)
     return 0;
 
-  /* line labels should be non-zero unless they're completely optional */
-  if (label == 0 && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
+  /* line labels should be non-zero unless they're optional */
+  if (label == 0
+    && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
     return 0;
 
-  /* line labels should be ascending unless they're completely optional */
+  /* line labels should be ascending unless they're optional */
   if (label <= last_label
     && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
     return 0;
@@ -450,7 +455,8 @@ StatementNode *parse_let_statement (void) {
     statement_destroy (statement);
     return NULL;
   }
-  statement->statement.letn->variable = toupper(*token->content) - 'A' + 1;
+  statement->statement.letn->variable
+    = toupper(*token->content) - 'A' + 1;
 
   /* get the "=" */
   token_destroy (token);
@@ -647,7 +653,7 @@ StatementNode *parse_print_statement (void) {
   OutputNode
     *nextoutput = NULL, /* the next output node we're parsing */
     *lastoutput = NULL; /* the last output node we parsed */
-  ExpressionNode *expression; /* a parsed expression in the output list */
+  ExpressionNode *expression; /* a parsed expression */
 
   /* initialise the statement */
   statement = statement_create ();
@@ -685,7 +691,8 @@ StatementNode *parse_print_statement (void) {
         nextoutput->output.expression = expression;
         nextoutput->next = NULL;
       } else {
-        errors_set_code (E_INVALID_PRINT_OUTPUT, token->line, last_label);
+        errors_set_code (E_INVALID_PRINT_OUTPUT, token->line, 
+          last_label);
         statement_destroy (statement);
         statement = NULL;
       }
@@ -701,7 +708,7 @@ StatementNode *parse_print_statement (void) {
       token = get_token_to_parse ();
     }
 
-  /* continue the loop until the PRINT statement appears to be finished */
+  /* continue the loop until the statement appears to be finished */
   } while (! errors_get_code ()
     && token->class == TOKEN_SYMBOL
     && ! strcmp (token->content, ","));
@@ -809,7 +816,7 @@ StatementNode *parse_statement () {
   /* check for command */
   switch ((class = get_statement_class (token))) {
     case STATEMENT_NONE:
-      token_destroy (token);
+      stored_token = token;
       statement = NULL;
       break;
     case STATEMENT_LET:
@@ -905,17 +912,9 @@ ProgramLineNode *parse_program_line (FILE *fh) {
 
   /* check for a statement and an EOL */
   program_line->statement = parse_statement ();
-  /**/if (program_line->statement)
-    /**/printf ("Parsed: [%s]\n", program_line_output (program_line));
-  /**/else
-    /**/printf ("Parsed blank line or comment.\n");
   token = get_token_to_parse ();
   if (token->class != TOKEN_EOL && token->class != TOKEN_EOF)
-  /**/{
-    /**/printf ("[%s:%d]\n", __FILE__, __LINE__);
-    /**/printf ("[token %d content %s]\n", token->class, token->content);
     errors_set_code (E_UNEXPECTED_PARAMETER, current_line, last_label);
-  /**/}
 
   /* return the program line */
   return program_line;
