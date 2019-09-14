@@ -1,8 +1,8 @@
     REM
     REM --- Tiny BASIC Interpreter and Compiler Project
-    REM --- Hammurabi Demostration Game
+    REM --- Hammurabi Demonstration Game
     REM
-    REM --- Released as Public Domain by Damian Gareth Walker 2019
+    REM --- Released as Public Domain by Damian Gareth Walker, 2019
     REM --- Created: 25-Aug-2019
     REM
 

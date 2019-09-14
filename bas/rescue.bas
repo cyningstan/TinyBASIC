@@ -58,7 +58,6 @@
     LET P=R-R/100*100
     GOSUB 2
     IF T<>0 THEN GOTO 5
-    IF P=V THEN GOTO 5
     LET W=P
 
     REM --- Check distance
@@ -69,7 +68,7 @@
     LET F=18
     RETURN
 
-    REM --- Subroutine to make one move
+    REM --- Subroutine to play one level
     REM Inputs:  W - the subroutine ends if the wreck is found
     REM Changes: D - the distance from the vessel to the wreck
     REM          F - the subroutine ends if fuel is depleted

@@ -220,7 +220,7 @@ int main (int argc, char **argv) {
     error_text = errors_text ();
     printf ("Parse error: %s\n", error_text);
     free (error_text);
-    exit (code);
+    return code;
   }
 
   /* perform the desired action */
