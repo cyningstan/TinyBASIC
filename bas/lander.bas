@@ -39,7 +39,7 @@
     IF V<5 THEN GOTO 40
     PRINT "You crashed!"
     GOTO 60
- 40 IF A>0 THEN GOTO 50
+ 40 IF A<0 THEN GOTO 50
     PRINT "Perfect landing!"
     GOTO 60
  50 PRINT "Touchdown."
