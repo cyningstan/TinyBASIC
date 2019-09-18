@@ -200,15 +200,6 @@ StatementNode *statement_create (void);
 void statement_destroy (StatementNode *statement);
 
 /*
- * Program Line Output
- * params:
- *   ProgramLineNode*   program_line   the line to output
- * returns:
- *   char*                             the reconstructed line
- */
-char *program_line_output (ProgramLineNode *program_line);
-
-/*
  * Program Line Constructor
  * returns:
  *   ProgramLineNode*   the new program line

@@ -16,6 +16,7 @@
 #include "parser.h"
 #include "statement.h"
 #include "interpret.h"
+#include "listing.h"
 
 
 /* static variables */
