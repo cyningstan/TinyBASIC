@@ -15,6 +15,7 @@
 #include "statement.h"
 #include "expression.h"
 #include "errors.h"
+#include "parser.h"
 
 
 /*
@@ -22,11 +23,11 @@
  */
 
 
-/* factor_output() has a forward reference to expression_output() */
-char *expression_output (ExpressionNode *expression);
+/* factor_output() has a forward reference to output_expression() */
+static char *output_expression (ExpressionNode *expression);
 
-/* statement_output() has a forward reference from statement_output_if() */
-char *statement_output (StatementNode *statement);
+/* output_statement() has a forward reference from output_if() */
+static char *output_statement (StatementNode *statement);
 
 
 /*
@@ -41,7 +42,7 @@ char *statement_output (StatementNode *statement);
  * return:
  *   char*                  the text representation of the factor
  */
-char *factor_output (FactorNode *factor) {
+static char *output_factor (FactorNode *factor) {
 
   /* local variables */
   char *factor_text = NULL, /* the text of the whole factor */
@@ -59,7 +60,7 @@ char *factor_output (FactorNode *factor) {
       sprintf (factor_text, "%d", factor->data.value);
       break;
     case FACTOR_EXPRESSION:
-      if ((expression_text = expression_output (factor->data.expression))) {
+      if ((expression_text = output_expression (factor->data.expression))) {
         factor_text = malloc (strlen (expression_text) + 3);
         sprintf (factor_text, "(%s)", expression_text);
         free (expression_text);
@@ -88,7 +89,7 @@ char *factor_output (FactorNode *factor) {
  * returns:
  *   char*              the text representation of the term
  */
-char *term_output (TermNode *term) {
+static char *output_term (TermNode *term) {
 
   /* local variables */
   char
@@ -98,7 +99,7 @@ char *term_output (TermNode *term) {
   RightHandFactor *rhfactor; /* right hand factors of the expression */
 
   /* begin with the initial factor */
-  if ((term_text = factor_output (term->factor))) {
+  if ((term_text = output_factor (term->factor))) {
     rhfactor = term->next;
     while (! errors_get_code () && rhfactor) {
 
@@ -119,7 +120,7 @@ char *term_output (TermNode *term) {
 
       /* get the factor that follows the operator */
       if (! errors_get_code ()
-        && (factor_text = factor_output (rhfactor->factor))) {
+        && (factor_text = output_factor (rhfactor->factor))) {
         term_text = realloc (term_text,
           strlen (term_text) + strlen (factor_text) + 2);
         sprintf (term_text, "%s%c%s", term_text, operator_char, factor_text);
@@ -143,7 +144,7 @@ char *term_output (TermNode *term) {
  * returns:
  *   char*                          new string containint the expression text
  */
-char *expression_output (ExpressionNode *expression) {
+static char *output_expression (ExpressionNode *expression) {
 
   /* local variables */
   char
@@ -153,7 +154,7 @@ char *expression_output (ExpressionNode *expression) {
   RightHandTerm *rhterm; /* right hand terms of the expression */
 
   /* begin with the initial term */
-  if ((expression_text = term_output (expression->term))) {
+  if ((expression_text = output_term (expression->term))) {
     rhterm = expression->next;
     while (! errors_get_code () && rhterm) {
 
@@ -174,7 +175,7 @@ char *expression_output (ExpressionNode *expression) {
 
       /* get the terms that follow the operators */
       if (! errors_get_code ()
-        && (term_text = term_output (rhterm->term))) {
+        && (term_text = output_term (rhterm->term))) {
         expression_text = realloc (expression_text,
           strlen (expression_text) + strlen (term_text) + 2);
         sprintf (expression_text, "%s%c%s", expression_text, operator_char,
@@ -199,7 +200,7 @@ char *expression_output (ExpressionNode *expression) {
  * returns:
  *   char*                      the LET statement text
  */
-char *statement_output_let (LetStatementNode *letn) {
+static char *output_let (LetStatementNode *letn) {
 
   /* local variables */
   char
@@ -207,7 +208,7 @@ char *statement_output_let (LetStatementNode *letn) {
     *expression_text = NULL; /* the text of the expression */
 
   /* assemble the expression */
-  expression_text = expression_output (letn->expression);
+  expression_text = output_expression (letn->expression);
 
   /* assemble the final LET text, if we have an expression */
   if (expression_text) {
@@ -228,7 +229,7 @@ char *statement_output_let (LetStatementNode *letn) {
  * returns:
  *   char*                    the IF statement text
  */
-char *statement_output_if (IfStatementNode *ifn) {
+static char *output_if (IfStatementNode *ifn) {
 
   /* local variables */
   char
@@ -239,9 +240,9 @@ char *statement_output_if (IfStatementNode *ifn) {
     *statement_text = NULL; /* the text of the conditional statement */
 
   /* assemble the expressions and conditional statement */
-  left_text = expression_output (ifn->left);
-  right_text = expression_output (ifn->right);
-  statement_text = statement_output (ifn->statement);
+  left_text = output_expression (ifn->left);
+  right_text = output_expression (ifn->right);
+  statement_text = output_statement (ifn->statement);
 
   /* work out the operator text */
   op_text = malloc (3);
@@ -280,7 +281,7 @@ char *statement_output_if (IfStatementNode *ifn) {
  * returns:
  *   char*                        the GOTO statement text
  */
-char *statement_output_goto (GotoStatementNode *goton) {
+static char *output_goto (GotoStatementNode *goton) {
 
   /* local variables */
   char
@@ -288,7 +289,7 @@ char *statement_output_goto (GotoStatementNode *goton) {
     *expression_text = NULL; /* the text of the expression */
 
   /* assemble the expression */
-  expression_text = expression_output (goton->label);
+  expression_text = output_expression (goton->label);
 
   /* assemble the final LET text, if we have an expression */
   if (expression_text) {
@@ -309,7 +310,7 @@ char *statement_output_goto (GotoStatementNode *goton) {
  * returns:
  *   char*                        the GOSUB statement text
  */
-char *statement_output_gosub (GosubStatementNode *gosubn) {
+static char *output_gosub (GosubStatementNode *gosubn) {
 
   /* local variables */
   char
@@ -317,7 +318,7 @@ char *statement_output_gosub (GosubStatementNode *gosubn) {
     *expression_text = NULL; /* the text of the expression */
 
   /* assemble the expression */
-  expression_text = expression_output (gosubn->label);
+  expression_text = output_expression (gosubn->label);
 
   /* assemble the final LET text, if we have an expression */
   if (expression_text) {
@@ -336,7 +337,7 @@ char *statement_output_gosub (GosubStatementNode *gosubn) {
  * returns:
  *   char*   A new string with the text "END"
  */
-char *statement_output_end (void) {
+static char *output_end (void) {
     char *end_text; /* the full text of the END command */
     end_text = malloc (4);
     strcpy (end_text, "END");
@@ -349,7 +350,7 @@ char *statement_output_end (void) {
  * returns:
  *   char*   A new string with the text "RETURN"
  */
-char *statement_output_return (void) {
+static char *output_return (void) {
     char *return_text; /* the full text of the RETURN command */
     return_text = malloc (7);
     strcpy (return_text, "RETURN");
@@ -364,7 +365,7 @@ char *statement_output_return (void) {
  * returns:
  *   char*                          the PRINT statement text
  */
-char *statement_output_print (PrintStatementNode *printn) {
+static char *output_print (PrintStatementNode *printn) {
 
   /* local variables */
   char
@@ -391,7 +392,7 @@ char *statement_output_print (PrintStatementNode *printn) {
         sprintf (output_text, "%c%s%c", '"', output->output.string, '"');
         break;
       case OUTPUT_EXPRESSION:
-        output_text = expression_output (output->output.expression);
+        output_text = output_expression (output->output.expression);
         break;
       }
 
@@ -416,7 +417,7 @@ char *statement_output_print (PrintStatementNode *printn) {
  * returns:
  *   char *                         the text of the INPUT statement
  */
-char *statement_output_input (InputStatementNode *inputn) {
+static char *output_input (InputStatementNode *inputn) {
 
   /* local variables */
   char
@@ -450,7 +451,7 @@ char *statement_output_input (InputStatementNode *inputn) {
  * returns:
  *   char*                        a string containing the statement line
  */
-char *statement_output (StatementNode *statement) {
+static char *output_statement (StatementNode *statement) {
 
   /* local variables */
   char *output = NULL; /* the text output */
@@ -462,28 +463,28 @@ char *statement_output (StatementNode *statement) {
   /* build the statement itself */
   switch (statement->class) {
     case STATEMENT_LET:
-      output = statement_output_let (statement->statement.letn);
+      output = output_let (statement->statement.letn);
       break;
     case STATEMENT_IF:
-      output = statement_output_if (statement->statement.ifn);
+      output = output_if (statement->statement.ifn);
       break;
     case STATEMENT_GOTO:
-      output = statement_output_goto (statement->statement.goton);
+      output = output_goto (statement->statement.goton);
       break;
     case STATEMENT_GOSUB:
-      output = statement_output_gosub (statement->statement.gosubn);
+      output = output_gosub (statement->statement.gosubn);
       break;
     case STATEMENT_RETURN:
-      output = statement_output_return ();
+      output = output_return ();
       break;
     case STATEMENT_END:
-      output = statement_output_end ();
+      output = output_end ();
      break;
     case STATEMENT_PRINT:
-      output = statement_output_print (statement->statement.printn);
+      output = output_print (statement->statement.printn);
       break;
     case STATEMENT_INPUT:
-      output = statement_output_input (statement->statement.inputn);
+      output = output_input (statement->statement.inputn);
       break;
     default:
       output = malloc (24);
@@ -501,7 +502,7 @@ char *statement_output (StatementNode *statement) {
  * returns:
  *   char*                             the reconstructed line
  */
-char *program_line_output (ProgramLineNode *program_line) {
+char *listing_line_output (ProgramLineNode *program_line) {
 
   /* local variables */
   char
@@ -516,7 +517,7 @@ char *program_line_output (ProgramLineNode *program_line) {
     strcpy (label_text, "      ");
 
   /* build the statement itself */
-  output = statement_output (program_line->statement);
+  output = output_statement (program_line->statement);
 
   /* if this wasn't a comment, combine the two */
   if (output) {

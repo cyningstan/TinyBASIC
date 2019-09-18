@@ -172,14 +172,5 @@ void factor_destroy (FactorNode *factor);
  */
 void expression_destroy (ExpressionNode *expression);
 
-/*
- * Output an expression for a program listing
- * params:
- *   ExpressionNode*   expression   the expression to output
- * returns:
- *   char*                          new string containint the expression text
- */
-char *expression_output (ExpressionNode *expression);
-
 
 #endif

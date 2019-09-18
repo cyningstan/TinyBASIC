@@ -162,7 +162,7 @@ void tinybasic_output_lst (ProgramNode *program) {
     /* write to the output file */
     program_line = program->first;
     while (program_line) {
-      if ((text = program_line_output (program_line))) {
+      if ((text = listing_line_output (program_line))) {
         fprintf (output, "%s", text);
         free (text);
       }

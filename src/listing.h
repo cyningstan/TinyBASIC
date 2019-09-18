@@ -19,4 +19,4 @@
  * returns:
  *   char*                             the reconstructed line
  */
-char *program_line_output (ProgramLineNode *program_line);
+char *listing_line_output (ProgramLineNode *program_line);
