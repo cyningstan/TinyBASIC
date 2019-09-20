@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "common.h"
 #include "errors.h"
 #include "options.h"
 #include "token.h"
@@ -44,31 +45,6 @@ static int end_of_file = 0; /* end of file signal */
 static FILE *input; /* the input file */
 static Token *stored_token = NULL; /* token read ahead */
 
-
-/*
- * Service level routines
- */
-
-/*
- * Portable case-insensitive comparison
- * params:
- *   char*   a   string to compare
- *   char*   b   string to compare to
- * returns:
- *   int         -1 if a<b, 0 if a==b, 1 if a>b
- */
-static int parser_strcmp (char *a, char *b) {
-  do {
-    if (toupper (*a) != toupper (*b))
-      return (toupper (*a) > toupper (*b))
-        - (toupper (*a) < toupper (*b));
-    else {
-      a++;
-      b++;
-    }
-  } while (*a && *b);
-  return 0;
-}
 
 
 /*
@@ -396,21 +372,21 @@ StatementClass get_statement_class (Token *token) {
     class = STATEMENT_NONE;
   else if (token->class != TOKEN_WORD)
     errors_set_code (E_UNRECOGNISED_COMMAND, current_line, last_label);
-  else if (! parser_strcmp (token->content, "LET"))
+  else if (! tinybasic_strcmp (token->content, "LET"))
     class = STATEMENT_LET;
-  else if (! parser_strcmp (token->content, "IF"))
+  else if (! tinybasic_strcmp (token->content, "IF"))
     class = STATEMENT_IF;
-  else if (! parser_strcmp (token->content, "GOTO"))
+  else if (! tinybasic_strcmp (token->content, "GOTO"))
     class = STATEMENT_GOTO;
-  else if (! parser_strcmp (token->content, "GOSUB"))
+  else if (! tinybasic_strcmp (token->content, "GOSUB"))
     class = STATEMENT_GOSUB;
-  else if (! parser_strcmp (token->content, "RETURN"))
+  else if (! tinybasic_strcmp (token->content, "RETURN"))
     class = STATEMENT_RETURN;
-  else if (! parser_strcmp (token->content, "END"))
+  else if (! tinybasic_strcmp (token->content, "END"))
     class = STATEMENT_END;
-  else if (! parser_strcmp (token->content, "PRINT"))
+  else if (! tinybasic_strcmp (token->content, "PRINT"))
     class = STATEMENT_PRINT;
-  else if (! parser_strcmp (token->content, "INPUT"))
+  else if (! tinybasic_strcmp (token->content, "INPUT"))
     class = STATEMENT_INPUT;
   else
     errors_set_code (E_UNRECOGNISED_COMMAND, current_line, last_label);
@@ -544,7 +520,7 @@ StatementNode *parse_if_statement (void) {
       strcpy (uccontent, token->content);
       for (ucptr = uccontent; *ucptr; ++ucptr)
         *ucptr = toupper (*ucptr);
-      if (parser_strcmp (uccontent, "THEN"))
+      if (tinybasic_strcmp (uccontent, "THEN"))
         errors_set_code (E_THEN_EXPECTED, token->line, last_label);
       free (uccontent);
     }

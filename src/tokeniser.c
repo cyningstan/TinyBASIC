@@ -191,6 +191,31 @@ static TokenClass identify_word (char *word) {
     return TOKEN_WORD;
 }
 
+/*
+ * Identify compound (multi-character) symbols.
+ * Also identifies some single-character symbols that can form
+ * the start of multi-character symbols.
+ * params:
+ *   char*   symbol   the symbol to identify
+ * returns:
+ *   TokenClass       the identification
+ */
+static TokenClass identify_compound_symbol (char *symbol) {
+  if (! strcmp (symbol, "<>")
+      || ! strcmp (symbol, "><"))
+    return TOKEN_UNEQUAL;
+  else if (! strcmp (symbol, "<"))
+    return TOKEN_LESSTHAN;
+  else if (! strcmp (symbol, "<="))
+    return TOKEN_LESSOREQUAL;
+  else if (! strcmp (symbol, ">"))
+    return TOKEN_GREATERTHAN;
+  else if (! strcmp (symbol, ">="))
+    return TOKEN_GREATEROREQUAL;
+  else
+    return TOKEN_SYMBOL;
+}
+
 
 /*
  * Level 1 Tokeniser Routines
@@ -207,7 +232,7 @@ static TokenClass identify_word (char *word) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void default_mode (TokeniserState *state) {
+static void default_mode (TokeniserState *state) {
 
   /* deal with non-EOL whitespace */
   if (state->ch == ' ' ||
@@ -260,7 +285,6 @@ void default_mode (TokeniserState *state) {
     start_line = line;
     start_pos = pos;
     store_character (state);
-    class = ;
     state->token = token_create_initialise (identify_symbol (state->ch),
       start_line, start_pos, state->content);
   }
@@ -299,7 +323,7 @@ void default_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void word_mode (TokeniserState *state) {
+static void word_mode (TokeniserState *state) {
 
   /* local variables */
   TokenClass class; /* recognised class of keyword */
@@ -335,7 +359,7 @@ void word_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void comment_mode (TokeniserState *state) {
+static void comment_mode (TokeniserState *state) {
   if (state->ch == '\n')
     state->mode = DEFAULT_MODE;
   else
@@ -350,7 +374,7 @@ void comment_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void number_mode (TokeniserState *state) {
+static void number_mode (TokeniserState *state) {
 
   /* add digits to the token */
   if (state->ch >= '0' && state->ch <= '9') {
@@ -376,13 +400,14 @@ void number_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void less_than_mode (TokeniserState *state) {
+static void less_than_mode (TokeniserState *state) {
   if (state->ch == '=' || state->ch == '>')
     store_character (state);
   else
     unread_character (state);
   state->token = token_create_initialise
-    (TOKEN_SYMBOL, start_line, start_pos, state->content);
+    (identify_compound_symbol (state->content), start_line, start_pos,
+     state->content);
 }
 
 /*
@@ -393,13 +418,14 @@ void less_than_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void greater_than_mode (TokeniserState *state) {
+static void greater_than_mode (TokeniserState *state) {
   if (state->ch == '=' || state->ch == '<')
     store_character (state);
   else
     ungetc (state->ch, state->input);
   state->token = token_create_initialise
-    (TOKEN_SYMBOL, start_line, start_pos, state->content);
+    (identify_compound_symbol (state->content), start_line, start_pos,
+     state->content);
 }
 
 /*
@@ -410,7 +436,7 @@ void greater_than_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void string_literal_mode (TokeniserState *state) {
+static void string_literal_mode (TokeniserState *state) {
 
   /* a quote terminates the string */
   if (state->ch == '"')
