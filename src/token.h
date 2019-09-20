@@ -22,10 +22,28 @@ typedef enum
    TOKEN_NONE, /* no token has yet been identified */
    TOKEN_EOF, /* end of file */
    TOKEN_EOL, /* end of line */
-   TOKEN_WORD, /* an identifier or keyword */
+   TOKEN_WORD, /* an identifier or keyword - token to be removed */
    TOKEN_NUMBER, /* a numeric constant */
-   TOKEN_SYMBOL, /* a legal symbol */
+   TOKEN_SYMBOL, /* a legal symbol - token to be removed */
    TOKEN_STRING, /* a string constant */
+   TOKEN_LET, /* the LET keyword */
+   TOKEN_IF, /* the IF keyword */
+   TOKEN_THEN, /* the THEN keyword */
+   TOKEN_GOTO, /* the GOTO keyword */
+   TOKEN_GOSUB, /* the GOSUB keyword */
+   TOKEN_RETURN, /* the RETURN keyword */
+   TOKEN_END, /* the END keyword */
+   TOKEN_PRINT, /* the PRINT keyword */
+   TOKEN_INPUT, /* the INPUT keyword */
+   TOKEN_REM, /* the REM keyword */
+   TOKEN_VARIABLE, /* a single letter A..Z */
+   TOKEN_PLUS, /* addition or unary positive */
+   TOKEN_MINUS, /* subtraction or unary negative */
+   TOKEN_MULTIPLY, /* multiplication */
+   TOKEN_DIVIDE, /* division */
+   TOKEN_LESS, /* less-than operator */
+
+   TOKEN_COMMA, /* comma separator */
    TOKEN_ILLEGAL /* unrecognised characters */
   } TokenClass;
 
