@@ -64,7 +64,7 @@ static int start_pos = 0; /* position on which a token started */
  * returns:
  *   int              character just read
  */
-int tokeniser_read_character (TokeniserState *state) {
+static int read_character (TokeniserState *state) {
 
   int ch; /* character read from stream */
 
@@ -91,7 +91,7 @@ int tokeniser_read_character (TokeniserState *state) {
  * params:
  *   TokeniserState*   state   current state of the tokeniser
  */
-void tokeniser_unread_character (TokeniserState *state) {
+static void unread_character (TokeniserState *state) {
   ungetc (state->ch, state->input);
   if (state->ch == '\n')
     --line;
@@ -104,7 +104,7 @@ void tokeniser_unread_character (TokeniserState *state) {
  * params:
  *   TokeniserState*   state   current state of the tokeniser
  */
-void tokeniser_store_character (TokeniserState *state) {
+static void store_character (TokeniserState *state) {
 
   /* variable declarations */
   char *temp; /* temporary pointer to content */
@@ -126,6 +126,71 @@ void tokeniser_store_character (TokeniserState *state) {
 
 }
 
+/*
+ * Identify the various recognised symbols
+ * params:
+ *   int   ch     the character to identify
+ * returns:
+ *   TokenClass   the token class recognised by the parser
+ */
+static TokenClass identify_symbol (int ch) {
+  switch (ch) {
+  case '+':
+    return TOKEN_PLUS;
+    break;
+  case '-':
+    return TOKEN_MINUS;
+    break;
+  case '*':
+    return TOKEN_MULTIPLY;
+    break;
+  case '/':
+    return TOKEN_DIVIDE;
+    break;
+  case '=':
+    return TOKEN_EQUAL;
+    break;
+  case '(':
+    return TOKEN_LEFT_PARENTHESIS;
+    break;
+  case ')':
+    return TOKEN_RIGHT_PARENTHESIS;
+    break;
+  case ',':
+    return TOKEN_COMMA;
+    break;
+  default:
+    return TOKEN_SYMBOL;
+  }
+}
+
+static TokenClass identify_word (char *word) {
+  if (strlen (word) == 1)
+    return TOKEN_VARIABLE;
+  else if (! tinybasic_strcmp (word, "LET"))
+    return TOKEN_LET;
+  else if (! tinybasic_strcmp (word, "IF"))
+    return TOKEN_IF;
+  else if (! tinybasic_strcmp (word, "THEN"))
+    return TOKEN_THEN;
+  else if (! tinybasic_strcmp (word, "GOTO"))
+    return TOKEN_GOTO;
+  else if (! tinybasic_strcmp (word, "GOSUB"))
+    return TOKEN_GOSUB;
+  else if (! tinybasic_strcmp (word, "RETURN"))
+    return TOKEN_RETURN;
+  else if (! tinybasic_strcmp (word, "END"))
+    return TOKEN_END;
+  else if (! tinybasic_strcmp (word, "PRINT"))
+    return TOKEN_PRINT;
+  else if (! tinybasic_strcmp (word, "INPUT"))
+    return TOKEN_INPUT;
+  else if (! tinybasic_strcmp (word, "REM"))
+    return TOKEN_REM;
+  else
+    return TOKEN_WORD;
+}
+
 
 /*
  * Level 1 Tokeniser Routines
@@ -136,18 +201,18 @@ void tokeniser_store_character (TokeniserState *state) {
  * Default mode - deal with character when state is unknown
  * globals:
  *   int               line         current line in the source file
- *   int               pos          current character position in the source file
+ *   int               pos          current character position in the source
  *   int               start_line   line on which the current token started
  *   int               start_pos    char pos on which the current token started
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void tokeniser_default_mode (TokeniserState *state) {
+void default_mode (TokeniserState *state) {
 
   /* deal with non-EOL whitespace */
   if (state->ch == ' ' ||
       state->ch == '\t') {
-    state->ch = tokeniser_read_character (state);
+    state->ch = read_character (state);
     start_line = line;
     start_pos = pos;
   }
@@ -176,8 +241,8 @@ void tokeniser_default_mode (TokeniserState *state) {
   else if (state->ch == '<') {
     start_line = line;
     start_pos = pos;
-    tokeniser_store_character (state);
-    state->ch = tokeniser_read_character (state);
+    store_character (state);
+    state->ch = read_character (state);
     state->mode = LESS_THAN_MODE;
   }
 
@@ -185,8 +250,8 @@ void tokeniser_default_mode (TokeniserState *state) {
   else if (state->ch == '>') {
     start_line = line;
     start_pos = pos;
-    tokeniser_store_character (state);
-    state->ch = tokeniser_read_character (state);
+    store_character (state);
+    state->ch = read_character (state);
     state->mode = GREATER_THAN_MODE;
   }
 
@@ -194,16 +259,17 @@ void tokeniser_default_mode (TokeniserState *state) {
   else if (strchr ("+-*/=(),", state->ch) != NULL) {
     start_line = line;
     start_pos = pos;
-    tokeniser_store_character (state);
-    state->token = token_create_initialise (TOKEN_SYMBOL, start_line, start_pos,
-      state->content);
+    store_character (state);
+    class = ;
+    state->token = token_create_initialise (identify_symbol (state->ch),
+      start_line, start_pos, state->content);
   }
 
   /* double quotes start a string literal */
   else if (state->ch == '"') {
     start_line = line;
     start_pos = pos;
-    state->ch = tokeniser_read_character (state);
+    state->ch = read_character (state);
     state->mode = STRING_LITERAL_MODE;
   }
 
@@ -219,11 +285,10 @@ void tokeniser_default_mode (TokeniserState *state) {
   else {
     start_line = line;
     start_pos = pos;
-    tokeniser_store_character (state);
-    state->token = token_create_initialise (TOKEN_ILLEGAL, start_line, start_pos,
-      state->content);
+    store_character (state);
+    state->token = token_create_initialise
+      (TOKEN_ILLEGAL, start_line, start_pos, state->content);
   }
-
 }
 
 /*
@@ -234,26 +299,30 @@ void tokeniser_default_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void tokeniser_word_mode (TokeniserState *state) {
+void word_mode (TokeniserState *state) {
+
+  /* local variables */
+  TokenClass class; /* recognised class of keyword */
     
   /* add letters and digits to the token */
   if ((state->ch >= 'A' && state->ch <= 'Z') ||
       (state->ch >= 'a' && state->ch <= 'z')) {
-    tokeniser_store_character (state);
-    state->ch = tokeniser_read_character (state);
+    store_character (state);
+    state->ch = read_character (state);
   }
     
   /* other characters are pushed back for the next token */
   else {
     if (state->ch != EOF)
-      tokeniser_unread_character (state);
-    if (strcmp (state->content, "REM"))
-      state->token = token_create_initialise
-        (TOKEN_WORD, start_line, start_pos, state->content);
-    else {
+      unread_character (state);
+    class = identify_word (state->content);
+    if (class == TOKEN_REM) {
       *state->content = '\0';
       state->mode = COMMENT_MODE;
     }
+    else
+      state->token = token_create_initialise
+        (class, start_line, start_pos, state->content);
   }
 
 }
@@ -266,11 +335,11 @@ void tokeniser_word_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void tokeniser_comment_mode (TokeniserState *state) {
+void comment_mode (TokeniserState *state) {
   if (state->ch == '\n')
     state->mode = DEFAULT_MODE;
   else
-    state->ch = tokeniser_read_character (state);
+    state->ch = read_character (state);
 }
 
 /*
@@ -281,18 +350,18 @@ void tokeniser_comment_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void tokeniser_number_mode (TokeniserState *state) {
+void number_mode (TokeniserState *state) {
 
   /* add digits to the token */
   if (state->ch >= '0' && state->ch <= '9') {
-    tokeniser_store_character (state);
-    state->ch = tokeniser_read_character (state);
+    store_character (state);
+    state->ch = read_character (state);
   }
     
   /* other characters are pushed back for the next token */
   else {
     if (state->ch != EOF)
-      tokeniser_unread_character (state);
+      unread_character (state);
     state->token = token_create_initialise
       (TOKEN_NUMBER, start_line, start_pos, state->content);
   }
@@ -307,11 +376,11 @@ void tokeniser_number_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void tokeniser_less_than_mode (TokeniserState *state) {
+void less_than_mode (TokeniserState *state) {
   if (state->ch == '=' || state->ch == '>')
-    tokeniser_store_character (state);
+    store_character (state);
   else
-    tokeniser_unread_character (state);
+    unread_character (state);
   state->token = token_create_initialise
     (TOKEN_SYMBOL, start_line, start_pos, state->content);
 }
@@ -324,9 +393,9 @@ void tokeniser_less_than_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void tokeniser_greater_than_mode (TokeniserState *state) {
+void greater_than_mode (TokeniserState *state) {
   if (state->ch == '=' || state->ch == '<')
-    tokeniser_store_character (state);
+    store_character (state);
   else
     ungetc (state->ch, state->input);
   state->token = token_create_initialise
@@ -341,7 +410,7 @@ void tokeniser_greater_than_mode (TokeniserState *state) {
  * params:
  *   TokeniserState*   state        current state of the tokeniser
  */
-void tokeniser_string_literal_mode (TokeniserState *state) {
+void string_literal_mode (TokeniserState *state) {
 
   /* a quote terminates the string */
   if (state->ch == '"')
@@ -350,9 +419,9 @@ void tokeniser_string_literal_mode (TokeniserState *state) {
 
   /* a backslash escapes the next character */
   else if (state->ch == '\\') {
-    state->ch = tokeniser_read_character (state);
-    tokeniser_store_character (state);
-    state->ch = tokeniser_read_character (state);
+    state->ch = read_character (state);
+    store_character (state);
+    state->ch = read_character (state);
   }
 
   /* EOF generates an error */
@@ -362,8 +431,8 @@ void tokeniser_string_literal_mode (TokeniserState *state) {
 
   /* all other characters are part of the string */
   else {
-    tokeniser_store_character (state);
-    state->ch = tokeniser_read_character (state);
+    store_character (state);
+    state->ch = read_character (state);
   }
 }
 
@@ -396,31 +465,31 @@ Token *tokeniser_next_token (FILE *input) {
   state.max = 1024;
   state.content = malloc (state.max);
   *(state.content) = '\0';
-  state.ch = tokeniser_read_character (&state);
+  state.ch = read_character (&state);
 
   /* main loop */
   while (state.token == NULL) {
     switch (state.mode) {
     case DEFAULT_MODE:
-      tokeniser_default_mode (&state);
+      default_mode (&state);
       break;
     case COMMENT_MODE:
-      tokeniser_comment_mode (&state);
+      comment_mode (&state);
       break;
     case WORD_MODE:
-      tokeniser_word_mode (&state);
+      word_mode (&state);
       break;
     case NUMBER_MODE:
-      tokeniser_number_mode (&state);
+      number_mode (&state);
       break;
     case LESS_THAN_MODE:
-      tokeniser_less_than_mode (&state);
+      less_than_mode (&state);
       break;
     case GREATER_THAN_MODE:
-      tokeniser_greater_than_mode (&state);
+      greater_than_mode (&state);
       break;
     case STRING_LITERAL_MODE:
-      tokeniser_string_literal_mode (&state);
+      string_literal_mode (&state);
       break;
     default:
       token_initialise (state.token, TOKEN_EOF, start_line, start_pos,

@@ -41,8 +41,14 @@ typedef enum
    TOKEN_MINUS, /* subtraction or unary negative */
    TOKEN_MULTIPLY, /* multiplication */
    TOKEN_DIVIDE, /* division */
-   TOKEN_LESS, /* less-than operator */
-
+   TOKEN_LEFT_PARENTHESIS, /* open parenthesis */
+   TOKEN_RIGHT_PARENTHESIS, /* close parenthesis */
+   TOKEN_EQUAL, /* = */
+   TOKEN_UNEQUAL, /* <> or >< */
+   TOKEN_LESSTHAN, /* < */
+   TOKEN_LESSOREQUAL, /* <= */
+   TOKEN_GREATERTHAN, /* > */
+   TOKEN_GREATEROREQUAL, /* >= */
    TOKEN_COMMA, /* comma separator */
    TOKEN_ILLEGAL /* unrecognised characters */
   } TokenClass;
