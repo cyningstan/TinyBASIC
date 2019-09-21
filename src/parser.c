@@ -48,7 +48,7 @@ static Token *stored_token = NULL; /* token read ahead */
 
 
 /*
- * Level 5 Parser Routines
+ * Level 7 Parser Routines
  */
 
 
@@ -78,7 +78,7 @@ Token *get_token_to_parse () {
 
 
 /*
- * Level 4 Parser Routines
+ * Level 6 Parser Routines
  */
 
 
@@ -101,10 +101,9 @@ FactorNode *parse_factor (void) {
   start_line = token->line;
 
   /* interpret a sign */
-  if (token->class == TOKEN_SYMBOL
-    && (! strcmp (token->content, "+")
-    || ! strcmp (token->content, "-"))) {
-    factor->sign = (*token->content == '+')
+  if (token->class == TOKEN_PLUS
+    || token->class == TOKEN_MINUS) {
+    factor->sign = (token->class == TOKEN_PLUS)
       ? SIGN_POSITIVE
       : SIGN_NEGATIVE;
     token = get_token_to_parse ();
@@ -119,24 +118,19 @@ FactorNode *parse_factor (void) {
   }
 
   /* interpret a variable */
-  else if (token->class == TOKEN_WORD
-    && strlen (token->content) == 1
-    && toupper (*token->content) >= 'A'
-    && toupper (*token->content) <= 'Z') {
+  else if (token->class == TOKEN_VARIABLE) {
     factor->class = FACTOR_VARIABLE;
     factor->data.variable = (int) *token->content & 0x1F;
   }
 
   /* interpret an parenthesised expression */
-  else if (token->class == TOKEN_SYMBOL
-    && ! strcmp (token->content, "(")) {
+  else if (token->class == TOKEN_LEFT_PARENTHESIS) {
 
     /* if expression is valid, check for ")" and complete the factor */
     expression = parse_expression ();
     if (expression) {
       token = get_token_to_parse ();
-      if (token->class == TOKEN_SYMBOL
-        && ! strcmp (token->content, ")")) {
+      if (token->class == TOKEN_RIGHT_PARENTHESIS) {
         factor->class = FACTOR_EXPRESSION;
         factor->data.expression = expression;
       } else {
@@ -169,7 +163,7 @@ FactorNode *parse_factor (void) {
 
 
 /*
- * Level 3 Parser Routines
+ * Level 5 Parser Routines
  */
 
 
@@ -199,14 +193,12 @@ TermNode *parse_term (void) {
     /* look for subsequent factors */
     while ((token = get_token_to_parse ())
       && ! errors_get_code ()
-      && token->class == TOKEN_SYMBOL
-      && strlen (token->content) == 1
-      && (*token->content == '*'
-      || *token->content == '/')) {
+      && (token->class == TOKEN_MULTIPLY
+      || token->class == TOKEN_DIVIDE)) {
 
       /* parse the sign and the factor */
       rhfactor = rhfactor_create ();
-      rhfactor->op = *token->content == '*'
+      rhfactor->op = token->class == TOKEN_MULTIPLY
           ? TERM_OPERATOR_MULTIPLY
           : TERM_OPERATOR_DIVIDE;
       if ((rhfactor->factor = parse_factor ())) {
@@ -240,7 +232,7 @@ TermNode *parse_term (void) {
 
 
 /*
- * Level 2 Parser Routines
+ * Level 4 Parser Routines
  */
 
 
@@ -268,14 +260,12 @@ ExpressionNode *parse_expression (void) {
     /* look for subsequent terms */
     while ((token = get_token_to_parse ())
       && ! errors_get_code ()
-      && token->class == TOKEN_SYMBOL
-      && strlen (token->content) == 1
-      && (*token->content == '+'
-      || *token->content == '-')) {
+      && (token->class == TOKEN_PLUS
+      || token->class == TOKEN_MINUS)) {
 
       /* parse the sign and the factor */
       rhterm = rhterm_create ();
-      rhterm->op = *token->content == '+'
+      rhterm->op = token->class == TOKEN_PLUS
           ? EXPRESSION_OPERATOR_PLUS
           : EXPRESSION_OPERATOR_MINUS;
       if ((rhterm->term = parse_term ())) {
@@ -309,7 +299,7 @@ ExpressionNode *parse_expression (void) {
 
 
 /*
- * Level 1 Parser Routines
+ * Level 3 Parser Routines
  */
 
 
@@ -325,7 +315,6 @@ int generate_default_label (void) {
   else
     return 0;
 }
-
 
 /*
  * Validate a line label according to the language options
@@ -354,48 +343,6 @@ int validate_line_label (int label) {
   return 1;
 }
 
-
-/*
- * Identify a statement from its initial keyword
- * params:
- *   Token            *token   the first token in a statement
- * return:
- *   StatementClass            the class of statement identified
- */
-StatementClass get_statement_class (Token *token) {
-
-  /* local variables */
-  StatementClass class = STATEMENT_NONE; /* class identified */
-
-  /* identify the command */
-  if (token->class == TOKEN_EOL)
-    class = STATEMENT_NONE;
-  else if (token->class != TOKEN_WORD)
-    errors_set_code (E_UNRECOGNISED_COMMAND, current_line, last_label);
-  else if (! tinybasic_strcmp (token->content, "LET"))
-    class = STATEMENT_LET;
-  else if (! tinybasic_strcmp (token->content, "IF"))
-    class = STATEMENT_IF;
-  else if (! tinybasic_strcmp (token->content, "GOTO"))
-    class = STATEMENT_GOTO;
-  else if (! tinybasic_strcmp (token->content, "GOSUB"))
-    class = STATEMENT_GOSUB;
-  else if (! tinybasic_strcmp (token->content, "RETURN"))
-    class = STATEMENT_RETURN;
-  else if (! tinybasic_strcmp (token->content, "END"))
-    class = STATEMENT_END;
-  else if (! tinybasic_strcmp (token->content, "PRINT"))
-    class = STATEMENT_PRINT;
-  else if (! tinybasic_strcmp (token->content, "INPUT"))
-    class = STATEMENT_INPUT;
-  else
-    errors_set_code (E_UNRECOGNISED_COMMAND, current_line, last_label);
-
-  /* return the identified class */
-  return class;
-}
-
-
 /*
  * Parse a LET statement
  * globals:
@@ -418,31 +365,18 @@ StatementNode *parse_let_statement (void) {
 
   /* see what variable we're assigning */
   token = get_token_to_parse ();
-  if (token->class != TOKEN_WORD) {
-    errors_set_code (E_INVALID_VARIABLE, line, last_label);
-    statement_destroy (statement);
-    return NULL;
-  } else if (strlen (token->content) != 1) {
-    errors_set_code (E_INVALID_VARIABLE, line, last_label);
-    statement_destroy (statement);
-    return NULL;
-  } else if (toupper (*token->content) < 'A'
-    || toupper (*token->content) > 'Z') {
+  if (token->class != TOKEN_VARIABLE) {
     errors_set_code (E_INVALID_VARIABLE, line, last_label);
     statement_destroy (statement);
     return NULL;
   }
   statement->statement.letn->variable
-    = toupper(*token->content) - 'A' + 1;
+    = *token->content & 0x1f;
 
   /* get the "=" */
   token_destroy (token);
   token = get_token_to_parse ();
-  if (token->class != TOKEN_SYMBOL) {
-    errors_set_code (E_INVALID_ASSIGNMENT, line, last_label);
-    statement_destroy (statement);
-    return NULL;
-  } else if (strcmp (token->content, "=")) {
+  if (token->class != TOKEN_EQUAL) {
     errors_set_code (E_INVALID_ASSIGNMENT, line, last_label);
     statement_destroy (statement);
     return NULL;
@@ -471,8 +405,6 @@ StatementNode *parse_let_statement (void) {
 StatementNode *parse_if_statement (void) {
 
   /* local variables */
-  char *uccontent, /* contents of the THEN token in upper case */
-    *ucptr; /* pointer for upper case conversion */
   Token *token; /* tokens read as part of the statement */
   StatementNode *statement; /* the IF statement */
 
@@ -487,23 +419,28 @@ StatementNode *parse_if_statement (void) {
   /* parse the operator */
   if (! errors_get_code ()) {
     token = get_token_to_parse ();
-    if (token->class != TOKEN_SYMBOL)
-      errors_set_code (E_INVALID_OPERATOR, token->line, last_label);
-    else if (! strcmp (token->content, "="))
+    switch (token->class) {
+    case TOKEN_EQUAL:
       statement->statement.ifn->op = RELOP_EQUAL;
-    else if (! strcmp (token->content, "<>")
-      || ! strcmp (token->content, "><"))
+      break;
+    case TOKEN_UNEQUAL:
       statement->statement.ifn->op = RELOP_UNEQUAL;
-    else if (! strcmp (token->content, "<"))
+      break;
+    case TOKEN_LESSTHAN:
       statement->statement.ifn->op = RELOP_LESSTHAN;
-    else if (! strcmp (token->content, "<="))
+      break;
+    case TOKEN_LESSOREQUAL:
       statement->statement.ifn->op = RELOP_LESSOREQUAL;
-    else if (! strcmp (token->content, ">"))
+      break;
+    case TOKEN_GREATERTHAN:
       statement->statement.ifn->op = RELOP_GREATERTHAN;
-    else if (! strcmp (token->content, ">="))
+      break;
+    case TOKEN_GREATEROREQUAL:
       statement->statement.ifn->op = RELOP_GREATEROREQUAL;
-    else
+      break;
+    default:
       errors_set_code (E_INVALID_OPERATOR, token->line, last_label);
+    }
   }
 
   /* parse the second expression */
@@ -513,17 +450,8 @@ StatementNode *parse_if_statement (void) {
   /* parse the THEN */
   if (! errors_get_code ()) {
     token = get_token_to_parse ();
-    if (token->class != TOKEN_WORD)
+    if (token->class != TOKEN_THEN)
       errors_set_code (E_THEN_EXPECTED, token->line, last_label);
-    else {
-      uccontent = malloc (strlen (token->content) + 1);
-      strcpy (uccontent, token->content);
-      for (ucptr = uccontent; *ucptr; ++ucptr)
-        *ucptr = toupper (*ucptr);
-      if (tinybasic_strcmp (uccontent, "THEN"))
-        errors_set_code (E_THEN_EXPECTED, token->line, last_label);
-      free (uccontent);
-    }
   }
 
   /* parse the conditional statement */
@@ -643,7 +571,7 @@ StatementNode *parse_print_statement (void) {
     token = get_token_to_parse ();
 
     /* process a premature end of line */
-    if (token->class == TOKEN_EOF || token->line != line) {
+    if (token->class == TOKEN_EOF || token->class == TOKEN_EOL) {
       errors_set_code (E_INVALID_PRINT_OUTPUT, line, last_label);
       statement_destroy (statement);
       statement = NULL;
@@ -687,8 +615,7 @@ StatementNode *parse_print_statement (void) {
 
   /* continue the loop until the statement appears to be finished */
   } while (! errors_get_code ()
-    && token->class == TOKEN_SYMBOL
-    && ! strcmp (token->content, ","));
+    && token->class == TOKEN_COMMA);
 
   /* push back the last token and return the assembled statement */
   stored_token = token;
@@ -730,22 +657,13 @@ StatementNode *parse_input_statement (void) {
     }
 
     /* attempt to process an variable name */
-    else if (token->class != TOKEN_WORD) {
-      errors_set_code (E_INVALID_VARIABLE, token->line, last_label);
-      statement_destroy (statement);
-      statement = NULL;
-    } else if (strlen (token->content) != 1) {
-      errors_set_code (E_INVALID_VARIABLE, token->line, last_label);
-      statement_destroy (statement);
-      statement = NULL;
-    } else if (toupper (*token->content) < 'A'
-      || toupper (*token->content) > 'Z') {
+    else if (token->class != TOKEN_VARIABLE) {
       errors_set_code (E_INVALID_VARIABLE, token->line, last_label);
       statement_destroy (statement);
       statement = NULL;
     } else {
       nextvar = malloc (sizeof (VariableListNode));
-      nextvar->variable = toupper(*token->content) - 'A' + 1;
+      nextvar->variable = *token->content & 0x1f;
       nextvar->next = NULL;
     }
 
@@ -759,8 +677,7 @@ StatementNode *parse_input_statement (void) {
       token = get_token_to_parse ();
     }
   } while (! errors_get_code ()
-    && token->class == TOKEN_SYMBOL
-    && ! strcmp (token->content, ","));
+    && token->class == TOKEN_COMMA);
 
   /* return the assembled statement */
   stored_token = token;
@@ -769,7 +686,7 @@ StatementNode *parse_input_statement (void) {
 
 
 /*
- * Level ? Routines
+ * Level 2 Parser Routines
  */
 
 
@@ -785,48 +702,47 @@ StatementNode *parse_statement () {
   /* local variables */
   Token *token; /* token read */
   StatementNode *statement = NULL; /* the new statement */
-  StatementClass class; /* class of command keyword read */
 
   /* get the next token */
   token = get_token_to_parse ();
 
   /* check for command */
-  switch ((class = get_statement_class (token))) {
-    case STATEMENT_NONE:
+  switch (token->class) {
+    case TOKEN_EOL:
       stored_token = token;
       statement = NULL;
       break;
-    case STATEMENT_LET:
+    case TOKEN_LET:
       token_destroy (token);
       statement = parse_let_statement ();
       break;
-    case STATEMENT_IF:
+    case TOKEN_IF:
       token_destroy (token);
       statement = parse_if_statement ();
       break;
-    case STATEMENT_GOTO:
+    case TOKEN_GOTO:
       token_destroy (token);
       statement = parse_goto_statement ();
       break;
-    case STATEMENT_GOSUB:
+    case TOKEN_GOSUB:
       token_destroy (token);
       statement = parse_gosub_statement ();
       break;
-    case STATEMENT_END:
+    case TOKEN_RETURN:
+      token_destroy (token);
+      statement = parse_return_statement ();
+      break;
+    case TOKEN_END:
       token_destroy (token);
       statement = parse_end_statement ();
       break;
-    case STATEMENT_PRINT:
+    case TOKEN_PRINT:
       token_destroy (token);
       statement = parse_print_statement ();
       break;
-    case STATEMENT_INPUT:
+    case TOKEN_INPUT:
       token_destroy (token);
       statement = parse_input_statement ();
-      break;
-    case STATEMENT_RETURN:
-      token_destroy (token);
-      statement = parse_return_statement ();
       break;
     default:
       errors_set_code (E_UNRECOGNISED_COMMAND, token->line, last_label);
@@ -839,7 +755,7 @@ StatementNode *parse_statement () {
 
 
 /*
- * Level ? Routines
+ * Level 1 Parser Routines
  */
 
 
