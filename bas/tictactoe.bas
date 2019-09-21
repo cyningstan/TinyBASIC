@@ -10,17 +10,22 @@
     REM     Y - bottom square
     REM     Z - bottom-right square
 
-    REM --- Subroutine to check for a player's move
+    REM --- Subroutine to allow the player to move
     REM     Inputs:  P   - player number
     REM     Changes: M   - the square the player wishes to place their piece
-    REM              R-Z - the board
 100 PRINT "Move? "
     INPUT M
     IF M<1 THEN GOTO 100
     IF M>9 THEN GOTO 100
     GOSUB 220
     IF N<>0 THEN GOTO 100
+    GOSUB 240
+    RETURN
 
+    REM --- Subroutine to make the computer's move
+    REM     Inputs:  P   - player number
+    REM     Outputs: 
+120 
 
     REM --- Subroutine to check for a win
     REM     Inputs:  R-Z - board squares
@@ -38,6 +43,7 @@
 
     REM --- Subroutine to see what piece is in a square
     REM     Inputs:  M   - the square to check
+    REM              R-Z - the contents of the squares
     REM     Outputs: N   - the piece in that square
 220 LET N=0
     IF M=1 THEN LET N=R
@@ -50,3 +56,19 @@
     IF M=8 THEN LET N=Y
     IF M=9 THEN LET N=Z
     RETURN
+
+    REM --- Subroutine to put a piece in a square
+    REM     Inputs:  P   - the player whose piece should be put in the square
+    REM              M   - the square to put the piece in
+    REM     Changes: R-Z - the contents of the squares
+240 IF M=1 THEN LET R=P
+    IF M=2 THEN LET S=P
+    IF M=3 THEN LET T=P
+    IF M=4 THEN LET U=P
+    IF M=5 THEN LET V=P
+    IF M=6 THEN LET W=P
+    IF M=7 THEN LET X=P
+    IF M=8 THEN LET Y=P
+    IF M=9 THEN LET Z=P
+    RETURN
+
