@@ -15,19 +15,19 @@ Both of these tools are non-interactive, and load their input from a source file
 No interactive interpreter is provided.
 .PP
 .B Tinybasic
-provides a few additional features. Comments with the \fBREM\fR statement were not part of the original specification, but are allowed here. There is support for optional line numbers, and a configurable upper limit for them. Because not all lines need a number, this manual will refer to them as \'line labels.\' Where the phrase \'line number\' appears, it will refer to the actual line count in the source file, as a text editor would recognise.
+provides a few additional features. Comments with the \fBREM\fR statement were not part of the original specification, but are allowed here. There is support for optional line numbers, and a configurable upper limit for them. Because not all lines need a number, this manual will refer to them as \'line labels.\' Where the phrase \'line number\' appears, it will refer to the actual line count in the source file, as a text editor would show.
 .SH OPTIONS
 .TP
 .BR \-n " " \fIvalue\fR ", " \-\-line\-numbers\=\fIvalue\fR
-Determines the handling of line labels. An argument of \fBm\fR or \fBmandatory\fR causes \fBtinybasic\fR to require a line label for every program line, in ascending order. An argument of \fBi\fR or \fBimplied\fR causes \fBtinybasic\fR to supply labels internally for each line that lacks them; care must be taken when labelling lines so that there is room for a sequence of numbers between one line label and the next. An argument of \fBo\fR or \fBoptional\fR makes line labels completely optional; those that are supplied need not be in sequence.
+Determines the handling of line labels. An argument of \fBm\fR or \fBmandatory\fR causes \fBtinybasic\fR to require a line label for every program line, in ascending order. An argument of \fBi\fR or \fBimplied\fR causes \fBtinybasic\fR to supply labels internally for each line that lacks them; care must be taken when labelling lines so that there is room for a sequence of numbers between one line label and the next. An argument of \fBo\fR or \fBoptional\fR makes line labels completely optional; those that are supplied need not be in ascending order.
 .TP
 .BR \-N " " \fIlimit\fR ", " \-\-line\-number\-limit=\fIlimit\fR
-Specifies the largest line label allowed in the BASIC program. The default is 255. The new limit may be up to 32767.
+Specifies the largest line label allowed in the BASIC program. The default is 32767, which is the highest value that \fBtinybasic\fR supports. The original Tiny BASIC had a limit of 255.
 .TP
 .BR \-o " " \fIcomment-option\fR ", " \-\-comments=\fIcomment-option\fR
 Enables or disables support for comments and blank lines in programs.
-\fIComment-options\fR can be \fBe\fR or \fBenabled\fR to supports comments and blank lines, which is the default setting.
-It can be \fBd\fR or \fBdisabled\fR to disable support for comments, which follows accurately the original Tiny BASIC specification.
+\fIComment-options\fR can be \fBe\fR or \fBenabled\fR to support comments and blank lines, which is the default setting.
+It can be \fBd\fR or \fBdisabled\fR to disable support for comments, as per the original Tiny BASIC specification.
 .TP
 .BR \-O " " [\fIoutput-type\fR] ", " \-\-output[=\fIoutput-type\fR]
 Specifies compilation or translation instead of interpretation, and what type of output is desired.
@@ -41,7 +41,7 @@ Each line of the file consists of an optional line label, a command keyword, and
 Lines may be blank, or the command keyword may be REM, which denotes that the rest of the program line is a comment.
 .PP
 That describes a program written using \fBtinybasic\fR's additional features.
-In a traditional Tiny BASIC program each line has a mandatory line label, a command keyword which may not be REM, and the command's parameters.
+In a traditional Tiny BASIC program each line has a mandatory line label, a command keyword which may \fInot\fR be \fBREM\fR, and the command's parameters.
 The original Tiny BASIC specification did not provide for comments or blank lines, and the line labels were required by the language's interactive line editor.
 .SH COMMANDS
 .TP
