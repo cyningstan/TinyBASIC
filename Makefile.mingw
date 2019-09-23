@@ -40,5 +40,5 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 
 # Cleanup
 clean:
-	if [ -e $(BUILDDIR)/*.$(OBJEXT) ]; then rm $(BUILDDIR)/*.$(OBJEXT); fi
-	if [ -e $(TARGETDIR)/$(TARGET) ]; then rm $(TARGETDIR)/$(TARGET); fi
+	rm -f $(BUILDDIR)/*.$(OBJEXT)
+	rm -f $(TARGETDIR)/$(TARGET)
