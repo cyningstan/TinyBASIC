@@ -1,9 +1,9 @@
 #
 # Tiny BASIC Interpreter and Compiler Project
-# Makefile
+# Makefile for clang under Termux/Android
 # 
 # Released as Public Domain by Damian Gareth Walker 2019
-# Created: 18-Aug-2019
+# Created: 24-Sep-2019
 #
 
 # Target
@@ -16,7 +16,7 @@ DOCDIR := doc
 BASDIR := bas
 BUILDDIR := obj
 TARGETDIR := bin
-INSTALLDIR := /usr/local
+INSTALLDIR := /data/data/com.termux/files/usr
 SRCEXT := c
 HDREXT := h
 OBJEXT := o
@@ -50,6 +50,7 @@ clean:
 install: $(TARGETDIR)/$(TARGET) $(DOCDIR)/tinybasic.man $(SAMPLES)
 	mkdir -p $(INSTALLDIR)/bin
 	cp $(TARGETDIR)/$(TARGET) $(INSTALLDIR)/bin
+	chmod +x $(INSTALLDIR)/bin/$(TARGET)
 	mkdir -p $(INSTALLDIR)/share/man/man1
 	cp $(DOCDIR)/tinybasic.man $(INSTALLDIR)/share/man/man1/tinybasic.1
 	mkdir -p $(INSTALLDIR)/share/doc/tinybasic/samples
