@@ -1,13 +1,14 @@
 #
 # Tiny BASIC Interpreter and Compiler Project
-# Makefile for MinGW Cross-compiler (Linux->Windows)
+# Makefile for Watcom Cross-compiler (Linux->DOS)
+# This uses GNU 'make', not Watcom 'wmake'
 # 
 # Released as Public Domain by Damian Gareth Walker 2019
 # Created: 21-Sep-2019
 #
 
 # Target
-TARGET = tinybasic.exe
+TARGET = tinybas.exe
 
 # Paths and extensions
 SRCDIR := src
@@ -21,9 +22,9 @@ HDREXT := h
 OBJEXT := o
 
 # Compiler flags
-CC := x86_64-w64-mingw32-gcc
-CFLAGS := -Wall
-INC := -I$(INCDIR) -I/usr/local/include
+CC := wcl
+CFLAGS := -0
+INC := -i=$(INCDIR) -i=$(WATCOM)/h
 
 # Generate file lists
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
@@ -33,12 +34,13 @@ OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT))
 all: $(TARGETDIR)/$(TARGET)
 
 $(TARGETDIR)/$(TARGET): $(OBJECTS)
-	$(CC) -o $(TARGETDIR)/$(TARGET) $(OBJECTS)
+	$(CC) -fe=$(TARGETDIR)/$(TARGET) $(OBJECTS)
 
 $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
-	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
+	$(CC) $(CFLAGS) $(INC) -c -fo=$@ $<
 
 # Cleanup
 clean:
 	rm -f $(BUILDDIR)/*.$(OBJEXT)
 	rm -f $(TARGETDIR)/$(TARGET)
+	rm -f *.err
