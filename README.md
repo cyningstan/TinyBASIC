@@ -115,7 +115,7 @@ One final note about Android. If you want to run TinyBASIC from an environment o
 
 The six sample programs are all classic games from the history of computing, of varying complexity and entertainment value. Some of them are actually fun to play.
 
-* `lander.bas`: the classic Lunar Lander game from 1969. Your lander module is descending to the moon's surface. Your task is the control that descent and ensure that the module lands safely. Do this by applying thrust judiciously and keeping your eye on both altitude and fuel levels. This is the smallest of the games but is quite entertaining until you learn the proper strategy.
+* `lander.bas`: the classic Lunar Lander game from 1969. Your lander module is descending to the moon's surface. Your task is to control that descent and ensure that the module lands safely. Do this by applying thrust judiciously and keeping your eye on both altitude and fuel levels. This is the smallest of the games but is quite entertaining until you learn the proper strategy.
 
 * `hurkle.bas`: Hunt the Hurkle, a game from the 1970s. The hurkle is hidden on a 10x10 grid and you must find it. Enter coordinates, and if your guess is wrong, the game lets you know in what direction to look.
 
