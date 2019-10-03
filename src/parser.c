@@ -112,7 +112,7 @@ FactorNode *parse_factor (void) {
   /* interpret a number */
   if (token->class == TOKEN_NUMBER) {
     factor->class = FACTOR_VALUE;
-    sscanf (token->content, "%d", &factor->data.value);
+    factor->data.value = atoi (token->content);
     if (factor->data.value < -32768 || factor->data.value > 32767)
       errors_set_code (E_OVERFLOW, start_line, last_label);
   }
@@ -789,7 +789,7 @@ ProgramLineNode *parse_program_line (FILE *fh) {
 
   /* deal with line label, if supplied */
   if (token->class == TOKEN_NUMBER) {
-    sscanf(token->content, "%d", &program_line->label);
+    program_line->label = atoi (token->content);
     token_destroy (token);
   } else
     stored_token = token;
