@@ -805,9 +805,11 @@ ProgramLineNode *parse_program_line (FILE *fh) {
 
   /* check for a statement and an EOL */
   program_line->statement = parse_statement ();
-  token = get_token_to_parse ();
-  if (token->class != TOKEN_EOL && token->class != TOKEN_EOF)
-    errors_set_code (E_UNEXPECTED_PARAMETER, current_line, last_label);
+  if (! errors_get_code ()) {
+    token = get_token_to_parse ();
+    if (token->class != TOKEN_EOL && token->class != TOKEN_EOF)
+      errors_set_code (E_UNEXPECTED_PARAMETER, current_line, last_label);
+  }
 
   /* return the program line */
   return program_line;
