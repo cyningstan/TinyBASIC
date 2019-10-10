@@ -15,6 +15,7 @@
 #include "expression.h"
 #include "errors.h"
 #include "parser.h"
+#include "options.h"
 #include "generatec.h"
 
 
@@ -31,7 +32,8 @@ typedef struct label {
 
 /* private data */
 typedef struct {
-  int input_used:1; /* true if we need the input routine */
+  unsigned int input_used:1; /* true if we need the input routine */
+  unsigned int vars_used:26; /* true for each variable used */
   CLabel *first_label; /* the start of a list of labels */
   char *code; /* the main block of generated code */
 } Private;
@@ -77,6 +79,7 @@ static char *output_factor (FactorNode *factor) {
     case FACTOR_VARIABLE:
       factor_text = malloc (2);
       sprintf (factor_text, "%c", factor->data.variable + 'a' - 1);
+      data->vars_used |= 1 << (factor->data.variable - 1);
       break;
     case FACTOR_VALUE:
       factor_text = malloc (7);
@@ -163,7 +166,6 @@ static char *output_term (TermNode *term) {
 
   /* return the expression text */
   return term_text;
-
 }
 
 
@@ -256,6 +258,7 @@ static char *output_let (LetStatementNode *letn) {
     let_text = malloc (4 + strlen (expression_text));
     sprintf (let_text, "%c=%s;", 'a' - 1 + letn->variable, expression_text);
     free (expression_text);
+    data->vars_used |= 1 << (letn->variable - 1);
   }
 
   /* return it */
@@ -478,8 +481,10 @@ static char *output_input (InputStatementNode *inputn) {
         strlen (input_text) + strlen (var_text) + 1);
       strcat (input_text, var_text);
       free (var_text);
+      data->vars_used |= 1 << (variable->variable - 1);
     } while ((variable = variable->next));
   }
+  data->input_used = 1;
 
   /* return the assembled text */
   return input_text;
@@ -599,7 +604,172 @@ static void generate_line (ProgramLineNode *program_line) {
     strcat (data->code, "\n");
     free (statement_text);
   }
+}
 
+/*
+ * Generate the #include lines and #defines
+ * changes:
+ *   Private*   data   appends headers to the output
+ */
+static void generate_includes (void) {
+
+  /* local variables */
+  char
+    include_text[1024], /* the whole include and #define text */
+    define_text[80]; /* a single #define line */
+
+  /* build up includes and defines */
+  strcpy (include_text, "#include <stdio.h>\n");
+  strcat (include_text, "#include <stdlib.h>\n");
+  sprintf (define_text, "#define E_OVERFLOW %d\n", E_OVERFLOW);
+  strcat (include_text, define_text);
+  sprintf (define_text, "#define E_RETURN_WITHOUT_GOSUB %d\n",
+    E_RETURN_WITHOUT_GOSUB);
+  strcat (include_text, define_text);
+
+  /* add the #includes and #defines to the output */
+  this->c_output = realloc (this->c_output, strlen (this->c_output)
+    + strlen (include_text) + 1);
+  strcat (this->c_output, include_text);
+}
+
+/*
+ * Generate the variable declarations
+ * changes:
+ *   Private*   data   appends declaration to the output
+ */
+static void generate_variables (void) {
+
+  /* local variables */
+  int vcount; /* variable counter */
+  char
+    var_text [6], /* individual variable text */
+    declaration[60]; /* declaration text */
+
+  /* build the declaration */
+  *declaration = '\0';
+  for (vcount = 0; vcount < 26; ++vcount) {
+    if (data->vars_used & 1 << vcount) {
+      if (*declaration)
+        sprintf (var_text, ",%c", 'a' + vcount);
+      else
+        sprintf (var_text, "int %c", 'a' + vcount);
+      strcat (declaration, var_text);
+    }
+  }
+
+  /* if there are any variables, add the declaration to the output */
+  if (*declaration) {
+    strcat (declaration, ";\n");
+    this->c_output = realloc (this->c_output, strlen (this->c_output)
+      + strlen (declaration) + 1);
+    strcat (this->c_output, declaration);
+  }
+}
+
+/*
+ * Generate the bas_input function
+ * changes:
+ *   Private*   data   appends declaration to the output
+ */
+static void generate_bas_input (void) {
+
+  /* local variables */
+  char function_text[1024]; /* the entire function */
+
+  /* construct the function text */
+  strcpy (function_text, "int bas_input (void) {\n");
+  strcat (function_text, "int ch, sign, value;\n");
+  strcat (function_text, "do {\n");
+  strcat (function_text, "if (ch == '-') sign = -1; else sign = 1;\n");
+  strcat (function_text, "ch = getchar ();\n");
+  strcat (function_text, "} while (ch < '0' || ch > '9');\n");
+  strcat (function_text, "value = 0;\n");
+  strcat (function_text, "do {\n");
+  strcat (function_text, "value = 10 * value + (ch - '0');\n");
+  strcat (function_text, "if (value * sign < -32768 || value * sign > 32767)\n");
+  strcat (function_text, "exit (E_OVERFLOW);\n");
+  strcat (function_text, "ch = getchar ();\n");
+  strcat (function_text, "} while (ch >= '0' && ch <= '9');\n");
+  strcat (function_text, "return sign * value;\n");
+  strcat (function_text, "}\n");
+
+  /* add the function text to the output */
+  this->c_output = realloc (this->c_output, strlen (this->c_output)
+    + strlen (function_text) + 1);
+  strcat (this->c_output, function_text);
+}
+
+/*
+ * Generate the bas_exec function
+ * changes:
+ *   Private*   data   appends declaration to the output
+ */
+static void generate_bas_exec (void) {
+
+  /* local variables */
+  char
+    *op, /* comparison operator to use for line numbers */
+    goto_line[80], /* a line in the goto block */
+    *goto_block, /* the goto block */
+    *function_text; /* the complete function text */
+  CLabel *label; /* label pointer for construction goto block */
+
+  /* decide which operator to use for comparison */
+  op = (options_get ().line_numbers == LINE_NUMBERS_OPTIONAL)
+    ? "=="
+    : "<=";
+
+  /* create the goto block */
+  goto_block = malloc (128);
+  strcpy (goto_block, "goto_block:\n");
+  strcat (goto_block, "if (!label) goto lbl_start;\n");
+  label = data->first_label;
+  while (label) {
+    sprintf (goto_line, "if (label%s%d) goto lbl_%d;\n",
+      op, label->number, label->number);
+    goto_block = realloc (goto_block,
+      strlen (goto_block) + strlen (goto_line) + 1);
+    strcat (goto_block, goto_line);
+    label = label->next;
+  }
+  goto_block = realloc (goto_block, strlen (goto_block) + 12);
+  strcat (goto_block, "lbl_start:\n");
+
+  /* put the function together */
+  function_text = malloc (28 + strlen (goto_block) + strlen (data->code) + 3);
+  strcpy (function_text, "void bas_exec (int label) {\n");
+  strcat (function_text, goto_block);
+  strcat (function_text, data->code);
+  strcat (function_text, "}\n");
+
+  /* add the function text to the output */
+  this->c_output = realloc (this->c_output, strlen (this->c_output)
+    + strlen (function_text) + 1);
+  strcat (this->c_output, function_text);
+  free (function_text);
+}
+
+/*
+ * Generate the main function
+ * changes:
+ *   Private*   data   appends declaration to the output
+ */
+void generate_main (void) {
+
+  /* local variables */
+  char function_text[1024]; /* the entire function */
+
+  /* construct the function text */
+  strcpy (function_text, "int main (void) {\n");
+  strcat (function_text, "bas_exec (0);\n");
+  strcat (function_text, "exit (E_RETURN_WITHOUT_GOSUB);\n");
+  strcat (function_text, "}\n");
+
+  /* add the function text to the output */
+  this->c_output = realloc (this->c_output, strlen (this->c_output)
+    + strlen (function_text) + 1);
+  strcat (this->c_output, function_text);
 }
 
 
@@ -631,11 +801,13 @@ static void generate (CProgram *c_program, ProgramNode *program) {
     program_line = program_line->next;
   }
 
-  /* temporary incomplete code generation for debugging */
-  if (data->code) {
-    this->c_output = malloc (strlen (data->code) + 1);
-    strcpy (this->c_output, data->code);
-  }
+  /* put the code together */
+  generate_includes ();
+  generate_variables ();
+  if (data->input_used)
+    generate_bas_input ();
+  generate_bas_exec ();
+  generate_main ();
 }
 
 /*
@@ -687,10 +859,12 @@ CProgram *new_CProgram (void) {
   this = malloc (sizeof (CProgram));
   this->private_data = data = malloc (sizeof (Private));
   data->input_used = 0;
+  data->vars_used = 0;
   data->first_label = NULL;
   data->code = malloc (1);
   *data->code = '\0';
-  this->c_output = NULL;
+  this->c_output = malloc (1);
+  *this->c_output = '\0';
   this->generate = generate;
   this->destroy = destroy;
 

@@ -38,7 +38,7 @@
     REM --- End of Game
     IF V<5 THEN GOTO 140
     PRINT "You crashed!"
-    GOTO 60
+    GOTO 160
 140 IF A<0 THEN GOTO 150
     PRINT "Perfect landing!"
     GOTO 160
