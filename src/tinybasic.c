@@ -17,13 +17,15 @@
 #include "statement.h"
 #include "interpret.h"
 #include "listing.h"
+#include "generatec.h"
 
 
 /* static variables */
 static char *input_filename = NULL; /* name of the input file */
 static enum { /* action to take with parsed program */
   OUTPUT_INTERPRET, /* interpret the program */
-  OUTPUT_LST /* output a formatted listing */
+  OUTPUT_LST, /* output a formatted listing */
+  OUTPUT_C /* output a C program */
 } output = OUTPUT_INTERPRET;
 
 
@@ -83,6 +85,8 @@ void tinybasic_option_comments (char *option) {
 void tinybasic_option_output (char *option) {
   if (! strcmp ("lst", option))
     output = OUTPUT_LST;
+  else if (! strcmp ("c", option))
+    output = OUTPUT_C;
   else
     errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
 }
@@ -129,7 +133,7 @@ void tinybasic_options (int argc, char **argv) {
     else if (! strncmp (argv[argn], "-O", 2))
       tinybasic_option_output (&argv[argn][2]);
     else if (! strncmp (argv[argn], "--output=", 9))
-      tinybasic_option_comments (&argv[argn][9]);
+      tinybasic_option_output (&argv[argn][9]);
 
     /* accept filename */
     else if (! input_filename)
@@ -167,6 +171,34 @@ void tinybasic_output_lst (ProgramNode *program) {
         free (text);
       }
       program_line = program_line->next;
+    }
+    fclose (output);
+  }
+
+  /* deal with errors */
+  else
+    errors_set_code (E_FILE_NOT_FOUND, 0, 0);
+}
+
+void tinybasic_output_c (ProgramNode *program) {
+
+  /* local variables */
+  FILE *output; /* the output file */
+  char *output_filename; /* the output filename */
+  CProgram *c_program; /* the C program */
+
+  /* open the output file */
+  output_filename = malloc (strlen (input_filename) + 5);
+  sprintf (output_filename, "%s.c", input_filename);
+  if ((output = fopen (output_filename, "w"))) {
+
+    /* write to the output file */
+    c_program = new_CProgram ();
+    if (c_program) {
+      c_program->generate (c_program, program);
+      if (c_program->c_output)
+        fprintf (output, "%s", c_program->c_output);
+      c_program->destroy (c_program);
     }
     fclose (output);
   }
@@ -236,6 +268,9 @@ int main (int argc, char **argv) {
       break;
     case OUTPUT_LST:
       tinybasic_output_lst (program);
+      break;
+    case OUTPUT_C:
+      tinybasic_output_c (program);
       break;
   }
 
