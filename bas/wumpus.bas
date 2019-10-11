@@ -18,9 +18,12 @@
     REM H - Hole 1 (bottomless pit) position
     REM I - Hole 2 (bottomless pit) position
     REM J - Randomised position for player or hazard
+    REM K - origin location of arrow in motion (before L)
+    REM L - previous location of arrow in motion
     REM M - menu option for move or shoot
     REM N - range for arrow shot
     REM P - parameter to the "exits" routine
+    REM Q - number of arrows in quiver
     REM R - random number
     REM S - random number generator seed
     REM W - Wumpus position
@@ -36,6 +39,9 @@
     LET H=0
     LET I=0
     LET W=0
+
+    REM --- Fill the player's quiver
+    LET Q=5
 
     REM --- Distribute the player and hazards across the map
     GOSUB 710
@@ -154,20 +160,34 @@
     IF N<1 THEN GOTO 800
     IF N>5 THEN GOTO 800
 805 LET P=C
+    LET L=0
 810 GOSUB 900
-    PRINT "You can shoot into rooms ",E,",",F,",",G 
+    LET K=L
+    LET L=P
+    PRINT "Arrow is next to rooms ",E,",",F,",",G 
 815 PRINT "Shoot where?"
     INPUT P
-    IF P<>E THEN IF P<>F THEN IF P<>G THEN GOTO 815
-    IF P=W THEN GOTO 830
+    IF P<>E THEN IF P<>F THEN IF P<>G THEN GOTO 830
+    IF P=K THEN GOTO 835
+    IF P=W THEN GOTO 850
     LET N=N-1
     IF N>0 THEN GOTO 810
+    LET Q=Q-1
     PRINT "The arrow startles the wumpus."
     LET P=W
     GOSUB 900
     GOSUB 670
+    IF Q=0 THEN GOTO 840
+    PRINT "You have ",Q," arrows left."
     RETURN
-830 PRINT "You hit the wumpus!"
+830 PRINT "The arrow can't reach there."
+    GOTO 815
+835 PRINT "The arrow can't double back on itself."
+    GOTO 815
+840 PRINT "You used your last arrow!"
+    PRINT "Your demise is now inevitable."
+    END
+850 PRINT "You hit the wumpus!"
     END
 
     REM --- Subroutine to set the exits
