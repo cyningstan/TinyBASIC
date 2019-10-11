@@ -31,10 +31,11 @@ It can be \fBd\fR or \fBdisabled\fR to disable support for comments, as per the 
 .TP
 .BR \-O " " [\fIoutput-type\fR] ", " \-\-output[=\fIoutput-type\fR]
 Specifies compilation or translation instead of interpretation, and what type of output is desired.
-Current \fIoutput\-type\fRs supported are \fBlst\fR for a formatted listing, or \fBc\fR for a C program ready to compile.
-The output filename is the same as the input filename, with an added extension the same as .\fIoutput\-type\fR.
 If the option is supplied without an \fIoutput\-type\fR, then the default is \fBlst\fR.
 If the option is absent altogether, then the program will be interpreted rather than compiled or translated.
+Current \fIoutput\-type\fRs supported are \fBlst\fR for a formatted listing, \fBc\fR for a C program ready to compile, or \fBexe\fR.
+Where the output type is \fBlst\fR or \fBc\fR the output filename is the same as the input filename, with an added extension the same as .\fIoutput\-type\fR.
+Where the output type is \fBexe\fR, the output file is dependent on the input filename and the \fBTBEXE\fR (see the section on Compilation).
 .SH PROGRAM FORMAT
 Programs are text files loaded in on invoking \fBtinybasic\fR.
 Each line of the file consists of an optional line label, a command keyword, and the command's parameters, if it has any.
@@ -95,6 +96,22 @@ Standard operator precedence evaluates parentheses first, then unary signs, then
 The relational operators are \fB=\fR, \fB>\fR, \fB<\fR, \fB<>\fR or \fB><\fR, \fB>=\fR, and \fB<=\fR.
 They are not supported within arithmetic expressions, but can only be used as conditions in \fBIF\fR statements in the form:
 .BR \fIexpression\fR " " \fIrelational-operator\fR " " \fIexpression\fR
+.SH COMPILATION
+\fBTinybasic\fR is capable of compiling programs into executables with the help of a C compiler.
+To use this facility, the \fBTBEXE\fR environment variable must be set before invoking \fBtinybasic\fR.
+The variable should contain the command that compiles a C program into an executable, and may contain the following tokens:
+.PP
+\fB$(SOURCE)\fR: the C source filename is substituted here.
+.br
+\fB$(TARGET)\fR: a target filename is substituted here.
+.TP
+The C source filename will be the same as the BASIC filename but with the extension \fB.c\fR added. The target filename is the BASIC source filename with the \fB.bas\fR extension removed; if the BASIC source filename has no extension, then \fB.out\fR is added to prevent the source being overwritten by the executable. If your operating system requires an extension like \fB.exe\fR for its executables, then you need to add it explicitly (i.e. \fB$(TARGET).exe\fR) - unless the compiler adds that itself. As an example, the file \fBtest.bas\fR could be compiled on a Unix system with the following commands:
+.PP
+$ TBEXE='gcc -o $(TARGET) $(SOURCE)'
+.br
+$ tinybasic -Oexe test.bas
+.TP
+This would produce the executable file \fBtest\fR, and as a side effect, the C source file \fBtest.bas.c\fR.
 .SH ERROR MESSAGES
 Program error messages can be in one of two forms:
 .PP
