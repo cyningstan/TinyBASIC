@@ -214,6 +214,9 @@ void tinybasic_output_c (ProgramNode *program) {
   /* deal with errors */
   else
     errors_set_code (E_FILE_NOT_FOUND, 0, 0);
+
+  /* clean up allocated memory */
+  free (output_filename);
 }
 
 /*
@@ -336,7 +339,8 @@ int main (int argc, char **argv) {
       break;
   }
 
-  /* return success */
+  /* clean up and return success */
+  program_destroy (program);
   return 0;
 
 }

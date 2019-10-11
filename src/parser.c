@@ -115,12 +115,14 @@ FactorNode *parse_factor (void) {
     factor->data.value = atoi (token->content);
     if (factor->data.value < -32768 || factor->data.value > 32767)
       errors_set_code (E_OVERFLOW, start_line, last_label);
+    token_destroy (token);
   }
 
   /* interpret a variable */
   else if (token->class == TOKEN_VARIABLE) {
     factor->class = FACTOR_VARIABLE;
     factor->data.variable = (int) *token->content & 0x1F;
+    token_destroy (token);
   }
 
   /* interpret an parenthesised expression */
@@ -129,6 +131,7 @@ FactorNode *parse_factor (void) {
     /* if expression is valid, check for ")" and complete the factor */
     expression = parse_expression ();
     if (expression) {
+      token_destroy (token);
       token = get_token_to_parse ();
       if (token->class == TOKEN_RIGHT_PARENTHESIS) {
         factor->class = FACTOR_EXPRESSION;
@@ -140,11 +143,13 @@ FactorNode *parse_factor (void) {
         factor = NULL;
         expression_destroy (expression);
       }
+      token_destroy (token);
     }
 
     /* clean up after invalid parenthesised expression */
     else {
       errors_set_code (E_INVALID_EXPRESSION, token->line, last_label);
+      token_destroy (token);
       factor_destroy (factor);
       factor = NULL;
     }
@@ -154,6 +159,7 @@ FactorNode *parse_factor (void) {
   else {
     errors_set_code (E_INVALID_EXPRESSION, token->line, last_label);
     factor_destroy (factor);
+    token_destroy (token);
     factor = NULL;
   }
 
@@ -441,6 +447,7 @@ StatementNode *parse_if_statement (void) {
     default:
       errors_set_code (E_INVALID_OPERATOR, token->line, last_label);
     }
+    token_destroy (token);
   }
 
   /* parse the second expression */
@@ -665,6 +672,7 @@ StatementNode *parse_input_statement (void) {
       nextvar = malloc (sizeof (VariableListNode));
       nextvar->variable = *token->content & 0x1f;
       nextvar->next = NULL;
+      token_destroy (token);
     }
 
     /* add this variable to the statement and look for another */

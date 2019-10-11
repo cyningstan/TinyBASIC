@@ -122,7 +122,8 @@ GotoStatementNode *statement_create_goto (void) {
  */
 void statement_destroy_goto (GotoStatementNode *goton) {
   if (goton) {
-    if (goton->label) free (goton->label);
+    if (goton->label)
+      expression_destroy (goton->label);
     free (goton);
   }
 }
@@ -158,7 +159,8 @@ GosubStatementNode *statement_create_gosub (void) {
  */
 void statement_destroy_gosub (GosubStatementNode *gosubn) {
   if (gosubn) {
-    if (gosubn->label) free (gosubn->label);
+    if (gosubn->label)
+      expression_destroy (gosubn->label);
     free (gosubn);
   }
 }
@@ -197,6 +199,10 @@ void statement_destroy_print (PrintStatementNode *printn) {
   current = printn->first;
   while (current) {
     next = current->next;
+    if (current->class == OUTPUT_STRING)
+      free (current->output.string);
+    else if (current->class == OUTPUT_EXPRESSION)
+      expression_destroy (current->output.expression);
     free (current);
     current = next;
   }

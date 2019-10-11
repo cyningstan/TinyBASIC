@@ -378,10 +378,10 @@ static char *output_gosub (GosubStatementNode *gosubn) {
  *   char*   A new string with the text "END"
  */
 static char *output_end (void) {
-    char *end_text; /* the full text of the END command */
-    end_text = malloc (9);
-    strcpy (end_text, "exit(0);");
-    return end_text;
+  char *end_text; /* the full text of the END command */
+  end_text = malloc (9);
+  strcpy (end_text, "exit(0);");
+  return end_text;
 }
 
 /*
@@ -390,10 +390,10 @@ static char *output_end (void) {
  *   char*   A new string with the text "RETURN"
  */
 static char *output_return (void) {
-    char *return_text; /* the full text of the RETURN command */
-    return_text = malloc (8);
-    strcpy (return_text, "return;");
-    return return_text;
+  char *return_text; /* the full text of the RETURN command */
+  return_text = malloc (8);
+  strcpy (return_text, "return;");
+  return return_text;
 }
 
 /*
@@ -431,7 +431,7 @@ static char *output_print (PrintStatementNode *printn) {
           strcat (format_text, output->output.string);
           break;
         case OUTPUT_EXPRESSION:
-          format_text = realloc (format_text, strlen (format_text) + 2);
+          format_text = realloc (format_text, strlen (format_text) + 3);
           strcat (format_text, "%d");
           output_text = output_expression (output->output.expression);
           output_list = realloc (output_list, 1 + strlen (output_text) + 1);
@@ -446,7 +446,7 @@ static char *output_print (PrintStatementNode *printn) {
   }
 
   /* assemble the whole print text and return it */
-  print_text = malloc (8 + strlen (format_text) + 2 + strlen (output_list) + 3);
+  print_text = malloc (8 + strlen (format_text) + 3 + strlen (output_list) + 3);
   sprintf (print_text, "printf(\"%s\\n\"%s);", format_text, output_list);
   free (format_text);
   free (output_list);
@@ -530,7 +530,7 @@ static char *output_statement (StatementNode *statement) {
       output = output_return ();
       break;
     case STATEMENT_END:
-      output = output_end ();
+     output = output_end ();
      break;
     case STATEMENT_PRINT:
       output = output_print (statement->statement.printn);
@@ -747,6 +747,7 @@ static void generate_bas_exec (void) {
   this->c_output = realloc (this->c_output, strlen (this->c_output)
     + strlen (function_text) + 1);
   strcat (this->c_output, function_text);
+  free (goto_block);
   free (function_text);
 }
 
