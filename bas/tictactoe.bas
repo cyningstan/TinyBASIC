@@ -32,7 +32,11 @@
     REM --- Subroutine to initialise the game
     REM     Outputs: H - Human play order
     REM              P - Whose turn it is
- 40 PRINT "Play first or second (1/2)?"
+ 40 PRINT "Tic tac toe. Board positions are:"
+    PRINT " 1  2  3"
+    PRINT " 4  5  6"
+    PRINT " 7  8  9"
+    PRINT "Play first or second (1/2)?"
     INPUT H
     IF H<1 THEN GOTO 40
     IF H>2 THEN GOTO 40
