@@ -16,30 +16,33 @@
 
 
 /*
+ * Type Declarations
+ */
+
+
+/* The token stream */
+typedef struct token_stream TokenStream; /* it contains self-references */
+typedef struct token_stream {
+  void *private_data; /* internal data for the token stream */
+  Token *(*next) (TokenStream *);
+  int (*get_line) (TokenStream *);
+  void (*destroy) (TokenStream *);
+} TokenStream;
+
+
+/*
  * Function Declarations
  */
 
 
 /*
- * Get the next token
- * globals:
- *   int     start_line   line on which the current token started
- *   int     start_pos    char pos on which the current token started
+ * Constructor for the token stream
  * params:
- *   FILE*   input        handle for the input file
+ *   FILE*   input   the input file stream
  * returns:
- *   Token*               the token built
+ *   TokenStream*    the token stream to read from
  */
-Token *tokeniser_next_token (FILE *input);
-
-/*
- * Getter for the current line number
- * globals:
- *   int   line   the current line number
- * returns:
- *   int          the current line number returned
- */
-int tokeniser_get_line (void);
+TokenStream *new_TokenStream (FILE *input);
 
 
 #endif
