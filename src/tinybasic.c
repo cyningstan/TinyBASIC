@@ -25,7 +25,8 @@ static char *input_filename = NULL; /* name of the input file */
 static enum { /* action to take with parsed program */
   OUTPUT_INTERPRET, /* interpret the program */
   OUTPUT_LST, /* output a formatted listing */
-  OUTPUT_C /* output a C program */
+  OUTPUT_C, /* output a C program */
+  OUTPUT_EXE /* output an executable */
 } output = OUTPUT_INTERPRET;
 
 
@@ -87,6 +88,8 @@ void tinybasic_option_output (char *option) {
     output = OUTPUT_LST;
   else if (! strcmp ("c", option))
     output = OUTPUT_C;
+  else if (! strcmp ("exe", option))
+    output = OUTPUT_EXE;
   else
     errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
 }
@@ -180,6 +183,11 @@ void tinybasic_output_lst (ProgramNode *program) {
     errors_set_code (E_FILE_NOT_FOUND, 0, 0);
 }
 
+/*
+ * Output a C source file
+ * params:
+ *   ProgramNode*   program   the parsed program
+ */
 void tinybasic_output_c (ProgramNode *program) {
 
   /* local variables */
@@ -208,6 +216,51 @@ void tinybasic_output_c (ProgramNode *program) {
     errors_set_code (E_FILE_NOT_FOUND, 0, 0);
 }
 
+/*
+ * Invoke a compiler to turn a C source file into an executable
+ * params:
+ *   char*   basic_filename   The BASIC program's name
+ */
+void tinybasic_output_exe (char *command, char *basic_filename) {
+
+  /* local variables */
+  char
+    c_filename[256], /* the name of the C source */
+    exe_filename[256], /* the base name of the executable */
+    final_command[1024], /* the constructed compiler command */
+    *ext, /* position of extension character '.' in filename */
+    *src, /* source pointer for string copying */
+    *dst; /* destination pointer for string copying */
+
+  /* work out the C and EXE filenames */
+  sprintf (c_filename, "%s.c", basic_filename);
+  strcpy (exe_filename, basic_filename);
+  if ((ext = strchr (exe_filename, '.')))
+    *ext = '\0';
+  else
+    strcat (exe_filename, ".out");
+
+  /* build the compiler command */
+  src = command;
+  dst = final_command;
+  while (*src) {
+    if (! strncmp (src, "$(TARGET)", strlen ("$(TARGET)"))) {
+      strcpy (dst, exe_filename);
+      dst += strlen (exe_filename);
+      src += strlen ("$(TARGET)");
+    } else if (! strncmp (src, "$(SOURCE)", strlen ("$(SOURCE)"))) {
+      strcpy (dst, c_filename);
+      dst += strlen (c_filename);
+      src += strlen ("$(SOURCE)");
+    } else
+      *(dst++) = *(src++);
+  }
+  *dst = '\0';
+
+  /* run the compiler command */
+  system (final_command);
+}
+
 
 /*
  * Top Level Routine
@@ -228,7 +281,9 @@ int main (int argc, char **argv) {
   FILE *input; /* input file */
   ProgramNode *program; /* the parsed program */
   ErrorCode code; /* error returned */
-  char *error_text; /* error text message */
+  char
+    *error_text, /* error text message */
+    *command; /* command for compilation */
 
   /* interpret the command line arguments */
   tinybasic_options (argc, argv);
@@ -271,6 +326,13 @@ int main (int argc, char **argv) {
       break;
     case OUTPUT_C:
       tinybasic_output_c (program);
+      break;
+    case OUTPUT_EXE:
+      if ((command = getenv ("TBEXE"))) {
+        tinybasic_output_c (program);
+        tinybasic_output_exe (command, input_filename);
+      } else
+        printf ("TBEXE not set.\n");
       break;
   }
 

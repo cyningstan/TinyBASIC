@@ -1,7 +1,5 @@
 # Tiny BASIC
 
-* Note: this project is unfinished. See the TO DO section for what's still needed and wanted for a finished product.
-
 Tinybasic is an implementation of the Tiny BASIC language. It conforms to the specification by Dennis Allison, published in People's Computer Company Vol.4 No.2 and reprinted in Dr. Dobb's Journal, January 1976.
 
 ## Getting Started
@@ -83,18 +81,18 @@ As with the Windows build, it's currently up to you how to package these files u
 
 ## Building for Android using Termux
 
-Termux is a Linux-like environment for Android. An Android system with a keyboard and a large enough screen is a viable system for BASIC programming, and TinyBASIC was developed on both a Linux system and an Android device using Termux, and unlike Windows and DOS is built on the target device itself.
+Termux is a Linux-like environment for Android. An Android system with a keyboard and a large enough screen is a viable system for BASIC programming. TinyBASIC was developed on both a Linux system and an Android device using Termux, and unlike Windows and DOS is built on the target device itself.
 
 So to build TinyBASIC on Android, you need Termux installed, and within Termux, you need the packages clang and make. To build the executable, type:
 
 ```
-$ make
+$ make -f Makefile.termux
 ```
 
 The `bin` directory will contain the Tiny BASIC binary, `tinybasic`. The `bas` directory will contain some BASIC sample programs, all games. To install these and the manuals in their proper place, type:
 
 ```
-$ make install
+$ make -f Makefile.termux install
 ```
 
 The `tinybasic` binary will be installed in `/data/data/termux/files/usr/bin`, the manual in `/data/data/termux/files/usr/man/man1` and the BASIC samples in `/data/data/termux/files/usr/share/doc/tinybasic`.
@@ -115,7 +113,7 @@ One final note about Android. If you want to run TinyBASIC from an environment o
 
 The six sample programs are all classic games from the history of computing, of varying complexity and entertainment value. Some of them are actually fun to play.
 
-* `lander.bas`: the classic Lunar Lander game from 1969. Your lander module is descending to the moon's surface. Your task is to control that descent and ensure that the module lands safely. Do this by applying thrust judiciously and keeping your eye on both altitude and fuel levels. This is the smallest of the games but is quite entertaining until you learn the proper strategy.
+* `lander.bas`: the classic Lunar Lander game from 1969. Your lander module is descending to the moon's surface. Your task is to control that descent and ensure that the module lands safely. Do this by applying thrust judiciously and keeping your eye on both altitude and fuel levels. This is the smallest of the games but is quite entertaining while you learn the proper strategy.
 
 * `hurkle.bas`: Hunt the Hurkle, a game from the 1970s. The hurkle is hidden on a 10x10 grid and you must find it. Enter coordinates, and if your guess is wrong, the game lets you know in what direction to look.
 
@@ -126,7 +124,3 @@ The six sample programs are all classic games from the history of computing, of 
 * `tictactoe.bas`: the traditional three-in-a-row game, with computer player. The computer in this version isn't perfect, and it's possible to win against it. Can you figure out how?
 
 * `wumpus.bas`: Hunt the Wumpus is a very entertaining adventure game. Hidden in a cave system is an awful creature called the Wumpus, and you must find it and kill it. There are giant bats and bottomless pits to thwart your efforts. If you have crafting skills, this would make a very good computer-aided solo board game.
-
-## TO DO
-
-There is no compiler yet. The initial "compiler" will be a C translator, which may or may not leave the user to compile its C output themselves.
