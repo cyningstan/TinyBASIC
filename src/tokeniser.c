@@ -247,7 +247,7 @@ static void default_mode (TokeniserState *state) {
   else if (state->ch == '\n') {
     start_line = line;
     start_pos = pos;
-    state->token = token_create_initialise
+    state->token = new_Token_initialise
       (TOKEN_EOL, start_line, start_pos, state->content);
   }
 
@@ -286,7 +286,7 @@ static void default_mode (TokeniserState *state) {
     start_line = line;
     start_pos = pos;
     store_character (state);
-    state->token = token_create_initialise (identify_symbol (state->ch),
+    state->token = new_Token_initialise (identify_symbol (state->ch),
       start_line, start_pos, state->content);
   }
 
@@ -302,7 +302,7 @@ static void default_mode (TokeniserState *state) {
   else if (state->ch == EOF) {
     start_line = line;
     start_pos = pos;
-    state->token = token_create_initialise (TOKEN_EOF, start_line, start_pos,
+    state->token = new_Token_initialise (TOKEN_EOF, start_line, start_pos,
       state->content);
   }
 
@@ -311,7 +311,7 @@ static void default_mode (TokeniserState *state) {
     start_line = line;
     start_pos = pos;
     store_character (state);
-    state->token = token_create_initialise
+    state->token = new_Token_initialise
       (TOKEN_ILLEGAL, start_line, start_pos, state->content);
   }
 }
@@ -346,7 +346,7 @@ static void word_mode (TokeniserState *state) {
       state->mode = COMMENT_MODE;
     }
     else
-      state->token = token_create_initialise
+      state->token = new_Token_initialise
         (class, start_line, start_pos, state->content);
   }
 
@@ -387,7 +387,7 @@ static void number_mode (TokeniserState *state) {
   else {
     if (state->ch != EOF)
       unread_character (state);
-    state->token = token_create_initialise
+    state->token = new_Token_initialise
       (TOKEN_NUMBER, start_line, start_pos, state->content);
   }
 
@@ -406,7 +406,7 @@ static void less_than_mode (TokeniserState *state) {
     store_character (state);
   else
     unread_character (state);
-  state->token = token_create_initialise
+  state->token = new_Token_initialise
     (identify_compound_symbol (state->content), start_line, start_pos,
      state->content);
 }
@@ -424,7 +424,7 @@ static void greater_than_mode (TokeniserState *state) {
     store_character (state);
   else
     ungetc (state->ch, state->input);
-  state->token = token_create_initialise
+  state->token = new_Token_initialise
     (identify_compound_symbol (state->content), start_line, start_pos,
      state->content);
 }
@@ -441,7 +441,7 @@ static void string_literal_mode (TokeniserState *state) {
 
   /* a quote terminates the string */
   if (state->ch == '"')
-    state->token = token_create_initialise
+    state->token = new_Token_initialise
       (TOKEN_STRING, start_line, start_pos, state->content);
 
   /* a backslash escapes the next character */
@@ -453,7 +453,7 @@ static void string_literal_mode (TokeniserState *state) {
 
   /* EOF generates an error */
   else if (state->ch == EOF)
-    state->token = token_create_initialise
+    state->token = new_Token_initialise
       (TOKEN_ILLEGAL, start_line, start_pos, state->content);
 
   /* all other characters are part of the string */
@@ -519,7 +519,7 @@ Token *tokeniser_next_token (FILE *input) {
       string_literal_mode (&state);
       break;
     default:
-      token_initialise (state.token, TOKEN_EOF, start_line, start_pos,
+      state.token = new_Token_initialise (TOKEN_EOF, start_line, start_pos,
         state.content);
       state.ch = EOF; /* temporary hack */
     }

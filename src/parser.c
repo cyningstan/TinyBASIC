@@ -219,7 +219,7 @@ TermNode *parse_term (void) {
       }
 
       /* clean up token */
-      token_destroy (token);
+      token->destroy (token);
     }
 
     /* we've read past the end of the term; put the token back */
@@ -286,7 +286,7 @@ ExpressionNode *parse_expression (void) {
       }
 
       /* clean up token */
-      token_destroy (token);
+      token->destroy (token);
     }
 
     /* we've read past the end of the term; put the token back */
@@ -374,7 +374,7 @@ StatementNode *parse_let_statement (void) {
     = *token->content & 0x1f;
 
   /* get the "=" */
-  token_destroy (token);
+  token->destroy (token);
   token = get_token_to_parse ();
   if (token->class != TOKEN_EQUAL) {
     errors_set_code (E_INVALID_ASSIGNMENT, line, last_label);
@@ -584,7 +584,7 @@ StatementNode *parse_print_statement (void) {
       nextoutput->output.string = malloc (1 + strlen (token->content));
       strcpy (nextoutput->output.string, token->content);
       nextoutput->next = NULL;
-      token_destroy (token);
+      token->destroy (token);
     }
 
     /* attempt to process an expression */
@@ -713,40 +713,40 @@ StatementNode *parse_statement () {
       statement = NULL;
       break;
     case TOKEN_LET:
-      token_destroy (token);
+      token->destroy (token);
       statement = parse_let_statement ();
       break;
     case TOKEN_IF:
-      token_destroy (token);
+      token->destroy (token);
       statement = parse_if_statement ();
       break;
     case TOKEN_GOTO:
-      token_destroy (token);
+      token->destroy (token);
       statement = parse_goto_statement ();
       break;
     case TOKEN_GOSUB:
-      token_destroy (token);
+      token->destroy (token);
       statement = parse_gosub_statement ();
       break;
     case TOKEN_RETURN:
-      token_destroy (token);
+      token->destroy (token);
       statement = parse_return_statement ();
       break;
     case TOKEN_END:
-      token_destroy (token);
+      token->destroy (token);
       statement = parse_end_statement ();
       break;
     case TOKEN_PRINT:
-      token_destroy (token);
+      token->destroy (token);
       statement = parse_print_statement ();
       break;
     case TOKEN_INPUT:
-      token_destroy (token);
+      token->destroy (token);
       statement = parse_input_statement ();
       break;
     default:
       errors_set_code (E_UNRECOGNISED_COMMAND, token->line, last_label);
-      token_destroy (token);
+      token->destroy (token);
   }
 
   /* return the statement */
@@ -782,7 +782,7 @@ ProgramLineNode *parse_program_line (FILE *fh) {
 
   /* deal with end of file */
   if (token->class == TOKEN_EOF) {
-    token_destroy (token);
+    token->destroy (token);
     program_line_destroy (program_line);
     return NULL;
   }
@@ -790,7 +790,7 @@ ProgramLineNode *parse_program_line (FILE *fh) {
   /* deal with line label, if supplied */
   if (token->class == TOKEN_NUMBER) {
     program_line->label = atoi (token->content);
-    token_destroy (token);
+    token->destroy (token);
   } else
     stored_token = token;
 

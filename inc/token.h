@@ -16,6 +16,9 @@
  */
 
 
+/* forward declaration */
+typedef struct token_struct Token;
+
 /* token classes */
 typedef enum
   {
@@ -54,12 +57,15 @@ typedef enum
   } TokenClass;
 
 /* token structure */
-typedef struct
+typedef struct token_struct
 {
   TokenClass class; /* class of token */
   int line; /* line on which token was found */
   int pos; /* position within the line on which token was found */
   char *content; /* representation of token */
+  void (*set_content) (Token *, char *);
+  void (*initialise) (Token *, TokenClass, int, int, char *);
+  void (*destroy) (Token *);
 } Token;
 
 
@@ -69,31 +75,11 @@ typedef struct
 
 
 /*
- * Set the token's text content
- * params:
- *   Token*   token     the token to alter
- *   char*    content   the text content to set
- */
-void token_set_content (Token *token, char *content);
-
-/*
- * Set all of the values of an existing token in a single function call.
- * params:
- *   Token*       token     the token to update
- *   TokenClass   class     class of token to initialise
- *   int          line      line on which the token occurred
- *   int          pos       character position on which the token occurred
- *   char*        content   the textual content of the token
- */
-void token_initialise (Token *token, TokenClass class, int line, int pos,
-  char *content);
-
-/*
  * Token constructor without values to initialise
  * returns:
  *   Token*   the created token
  */
-Token *token_create (void);
+Token *new_Token (void);
 
 /*
  * Token constructor with values to initialise
@@ -105,21 +91,7 @@ Token *token_create (void);
  * returns:
  *   Token*                 the created token
  */
-Token *token_create_initialise (TokenClass class, int line, int pos, char *content);
-
-/*
- * Token destructor
- * params:
- *   Token*   token   the doomed token
- */
-void token_destroy (Token *token);
-
-/*
- * Token debug output
- * params:
- *   Token*   token   the token to output
- */
-void token_debug_output (Token *token);
+Token *new_Token_initialise (TokenClass class, int line, int pos, char *content);
 
 
 #endif
