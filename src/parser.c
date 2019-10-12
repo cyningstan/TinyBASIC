@@ -46,7 +46,6 @@ static FILE *input; /* the input file */
 static Token *stored_token = NULL; /* token read ahead */
 
 
-
 /*
  * Level 7 Parser Routines
  */
@@ -106,6 +105,7 @@ FactorNode *parse_factor (void) {
     factor->sign = (token->class == TOKEN_PLUS)
       ? SIGN_POSITIVE
       : SIGN_NEGATIVE;
+    token_destroy (token);
     token = get_token_to_parse ();
   }
 
@@ -128,10 +128,10 @@ FactorNode *parse_factor (void) {
   /* interpret an parenthesised expression */
   else if (token->class == TOKEN_LEFT_PARENTHESIS) {
 
-    /* if expression is valid, check for ")" and complete the factor */
+    /* parse the parenthesised expression and complete the factor */
+    token_destroy (token);
     expression = parse_expression ();
     if (expression) {
-      token_destroy (token);
       token = get_token_to_parse ();
       if (token->class == TOKEN_RIGHT_PARENTHESIS) {
         factor->class = FACTOR_EXPRESSION;
@@ -374,6 +374,7 @@ StatementNode *parse_let_statement (void) {
   if (token->class != TOKEN_VARIABLE) {
     errors_set_code (E_INVALID_VARIABLE, line, last_label);
     statement_destroy (statement);
+    token_destroy (token);
     return NULL;
   }
   statement->statement.letn->variable
@@ -385,8 +386,10 @@ StatementNode *parse_let_statement (void) {
   if (token->class != TOKEN_EQUAL) {
     errors_set_code (E_INVALID_ASSIGNMENT, line, last_label);
     statement_destroy (statement);
+    token_destroy (token);
     return NULL;
   }
+  token_destroy (token);
 
   /* get the expression */
   statement->statement.letn->expression = parse_expression ();
@@ -459,6 +462,7 @@ StatementNode *parse_if_statement (void) {
     token = get_token_to_parse ();
     if (token->class != TOKEN_THEN)
       errors_set_code (E_THEN_EXPECTED, token->line, last_label);
+    token_destroy (token);
   }
 
   /* parse the conditional statement */
@@ -559,7 +563,7 @@ StatementNode *parse_end_statement (void) {
 StatementNode *parse_print_statement (void) {
 
   /* local variables */
-  Token *token; /* tokens read as part of the statement */
+  Token *token = NULL; /* tokens read as part of the statement */
   StatementNode *statement; /* the statement we're building */
   int line; /* line containing the PRINT token */
   OutputNode
@@ -575,6 +579,9 @@ StatementNode *parse_print_statement (void) {
 
   /* main loop for parsing the output list */
   do {
+
+    /* discard a previous comma, and read the next output value */
+    if (token) token_destroy (token);
     token = get_token_to_parse ();
 
     /* process a premature end of line */
@@ -582,6 +589,7 @@ StatementNode *parse_print_statement (void) {
       errors_set_code (E_INVALID_PRINT_OUTPUT, line, last_label);
       statement_destroy (statement);
       statement = NULL;
+      token_destroy (token);
     }
 
     /* process a literal string */
@@ -625,7 +633,8 @@ StatementNode *parse_print_statement (void) {
     && token->class == TOKEN_COMMA);
 
   /* push back the last token and return the assembled statement */
-  stored_token = token;
+  if (! errors_get_code ())
+    stored_token = token;
   return statement;
 }
 
@@ -639,7 +648,7 @@ StatementNode *parse_print_statement (void) {
 StatementNode *parse_input_statement (void) {
 
   /* local variables */
-  Token *token; /* tokens read as part of the statement */
+  Token *token = NULL; /* tokens read as part of the statement */
   StatementNode *statement; /* the statement we're building */
   int line; /* line containing the INPUT token */
   VariableListNode
@@ -654,6 +663,9 @@ StatementNode *parse_input_statement (void) {
 
   /* main loop for parsing the variable list */
   do {
+
+    /* discard a previous comma, and seek the next variable */
+    if (token) token_destroy (token);
     token = get_token_to_parse ();
 
     /* process a premature end of line */
@@ -817,6 +829,7 @@ ProgramLineNode *parse_program_line (FILE *fh) {
     token = get_token_to_parse ();
     if (token->class != TOKEN_EOL && token->class != TOKEN_EOF)
       errors_set_code (E_UNEXPECTED_PARAMETER, current_line, last_label);
+    token_destroy (token);
   }
 
   /* return the program line */

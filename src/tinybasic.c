@@ -305,6 +305,7 @@ int main (int argc, char **argv) {
 
   /* get the parse tree */
   program = parse_program (input);
+  fclose (input);
 
   /* deal with errors */
   if ((code = errors_get_code ())) {

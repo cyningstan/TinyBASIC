@@ -434,7 +434,8 @@ static char *output_print (PrintStatementNode *printn) {
           format_text = realloc (format_text, strlen (format_text) + 3);
           strcat (format_text, "%d");
           output_text = output_expression (output->output.expression);
-          output_list = realloc (output_list, 1 + strlen (output_text) + 1);
+          output_list = realloc (output_list,
+            strlen (output_list) + 1 + strlen (output_text) + 1);
           strcat (output_list, ",");
           strcat (output_list, output_text);
           free (output_text);
