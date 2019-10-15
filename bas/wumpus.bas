@@ -96,16 +96,20 @@
     PRINT "The wumpus runs away!"
 
     REM Is there a pit nearby?
-630 IF E<>H THEN IF F<>H THEN IF G<>H THEN IF E<>I THEN IF F<>I THEN IF G<>I THEN GOTO 640
-    PRINT "You feel a cold wind blowing from a nearby cavern."
+630 IF E<>H THEN IF F<>H THEN IF G<>H THEN GOTO 632
+    GOTO 633
+632 IF E<>I THEN IF F<>I THEN IF G<>I THEN GOTO 640
+633 PRINT "You feel a cold wind blowing from a nearby cavern."
 
     REM Is the wumpus nearby?
 640 IF E<>W THEN IF F<>W THEN IF G<>W THEN GOTO 650
     PRINT "You smell something terrible nearby."
 
     REM Is there a bat nearby?
-650 IF E<>A THEN IF F<>A THEN IF G<>A THEN IF E<>B THEN IF F<>B THEN IF G<>B THEN GOTO 660
-    PRINT "You hear a loud squeaking and a flapping of wings."
+650 IF E<>A THEN IF F<>A THEN IF G<>A THEN GOTO 652
+    GOTO 653
+652 IF E<>B THEN IF F<>B THEN IF G<>B THEN GOTO 660
+653 PRINT "You hear a loud squeaking and a flapping of wings."
 660 RETURN
 
     REM --- Relocate the Wumpus
@@ -145,7 +149,9 @@
     REM -- Find a random unoccupied position
 710 GOSUB 750
     LET J=1+R-R/20*20
-    IF J<>A THEN IF J<>B THEN IF J<>C THEN IF J<>H THEN IF J<>I THEN IF J<>W THEN RETURN
+    IF J<>A THEN IF J<>B THEN IF J<>C THEN GOTO 714
+    GOTO 710
+714 IF J<>H THEN IF J<>I THEN IF J<>W THEN RETURN
     GOTO 710
 
     REM --- Random number generator
@@ -193,86 +199,32 @@
     REM --- Subroutine to set the exits
     REM Input: P - current position
     REM Outputs: E, F, G (exits)
-900 IF P>=1 THEN IF P<=20 THEN GOTO 900+4*P
+900 IF P>=1 THEN IF P<=20 THEN GOTO 905
     PRINT "Illegal position ",P
     END
-904 LET E=2
-    LET F=5
-    LET G=8
+905 GOTO 900+10*((14+P)/10)
+
+    REM --- Outer caves
+910 LET E=P-1
+    IF E=0 THEN LET E=5
+    LET F=P+1
+    IF F=6 THEN LET F=1
+    LET G=4+2*P
     RETURN
-908 LET E=1
-    LET F=3
-    LET G=10
+
+    REM --- Middle caves
+920 LET E=P-1
+    IF E=5 THEN LET E=15
+    LET F=P+1
+    IF F=16 THEN LET F=6
+    IF P/2*2<>P THEN LET G=13+P/2
+    IF P/2*2=P THEN LET G=P/2-2
     RETURN
-912 LET E=2
-    LET F=4
-    LET G=12
-    RETURN
-916 LET E=3
-    LET F=5
-    LET G=14
-    RETURN
-920 LET E=1
-    LET F=4
-    LET G=6
-    RETURN
-924 LET E=5
-    LET F=7
-    LET G=15
-    RETURN
-928 LET E=6
-    LET F=8
-    LET G=17
-    RETURN
-932 LET E=1
-    LET F=7
-    LET G=11
-    RETURN
-936 LET E=10
-    LET F=12
-    LET G=19
-    RETURN
-940 LET E=2
-    LET F=9
-    LET G=11
-    RETURN
-944 LET E=8
-    LET F=10
-    LET G=20
-    RETURN
-948 LET E=3
-    LET F=9
-    LET G=13
-    RETURN
-952 LET E=12
-    LET F=14
-    LET G=18
-    RETURN
-956 LET E=4
-    LET F=13
-    LET G=15
-    RETURN
-960 LET E=6
-    LET F=14
-    LET G=16
-    RETURN
-964 LET E=15
-    LET F=17
-    LET G=18
-    RETURN
-968 LET E=7
-    LET F=16
-    LET G=20
-    RETURN
-972 LET E=13
-    LET F=16
-    LET G=19
-    RETURN
-976 LET E=9
-    LET F=18
-    LET G=20
-    RETURN
-980 LET E=11
-    LET F=17
-    LET G=19
+
+    REM --- Inner caves
+930 LET E=P-1
+    IF E=15 THEN LET E=20
+    LET F=P+1
+    IF F=21 THEN LET F=16
+    LET G=2*P-25
     RETURN
