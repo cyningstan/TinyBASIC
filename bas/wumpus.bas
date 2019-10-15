@@ -29,7 +29,7 @@
     REM W - Wumpus position
 
     REM --- Intialise the random number generator
-  1 PRINT "Think of a number"
+ 32 PRINT "Think of a number"
     INPUT S
 
     REM --- Initialise the player and hazard positions
@@ -44,76 +44,76 @@
     LET Q=5
 
     REM --- Distribute the player and hazards across the map
-    GOSUB 710
+    GOSUB 150
     LET A=J
-    GOSUB 710
+    GOSUB 150
     LET B=J
-    GOSUB 710
+    GOSUB 150
     LET C=J
-    GOSUB 710
+    GOSUB 150
     LET H=J
-    GOSUB 710
+    GOSUB 150
     LET I=J
-    GOSUB 710
+    GOSUB 150
     LET W=J
 
     REM --- Introductory text
     PRINT "You enter the caves to Hunt the Wumpus!"
 
     REM --- Main Game Loop
-500 PRINT "You are in room ",C
+ 64 PRINT "You are in room ",C
     LET P=C
-    GOSUB 900
-    GOSUB 600
+    GOSUB 202
+    GOSUB 80
     PRINT "Exits are ",E,",",F,",",G
-510 PRINT "1:Move or 2:Shoot?"
+ 69 PRINT "1:Move or 2:Shoot?"
     INPUT M
-    IF M<1 THEN GOTO 510
-    IF M>2 THEN GOTO 510
-    IF M=1 THEN GOSUB 700
-    IF M=2 THEN GOSUB 800
-    GOTO 500
+    IF M<1 THEN GOTO 69
+    IF M>2 THEN GOTO 69
+    IF M=1 THEN GOSUB 143
+    IF M=2 THEN GOSUB 164
+    GOTO 64
 
     REM --- Subroutine to check for hazards
 
     REM Has the player encountered a bat?
-600 IF C<>A THEN IF C<>B THEN GOTO 610
+ 80 IF C<>A THEN IF C<>B THEN GOTO 88
     PRINT "A bat swoops down and picks you up..."
-    GOSUB 680
+    GOSUB 126
     PRINT "...and drops you down"
     LET P=C
-    GOSUB 900
+    GOSUB 202
 
     REM Has the player fallen in a pit?
-610 IF C<>H THEN IF C<>I THEN GOTO 620
+ 88 IF C<>H THEN IF C<>I THEN GOTO 93
     PRINT "You fall down a bottomless hole into the abyss!"
     END
 
     REM Has the player startled the wumpus?
-620 IF C<>W THEN GOTO 630
+ 93 IF C<>W THEN GOTO 99
     PRINT "You stumble upon the wumpus!"
-    GOSUB 670
+    GOSUB 116
     PRINT "The wumpus runs away!"
 
     REM Is there a pit nearby?
-630 IF E<>H THEN IF F<>H THEN IF G<>H THEN GOTO 632
-    GOTO 633
-632 IF E<>I THEN IF F<>I THEN IF G<>I THEN GOTO 640
-633 PRINT "You feel a cold wind blowing from a nearby cavern."
+ 99 IF E<>H THEN IF F<>H THEN IF G<>H THEN GOTO 101
+    GOTO 102
+101 IF E<>I THEN IF F<>I THEN IF G<>I THEN GOTO 105
+102 PRINT "You feel a cold wind blowing from a nearby cavern."
 
     REM Is the wumpus nearby?
-640 IF E<>W THEN IF F<>W THEN IF G<>W THEN GOTO 650
+105 IF E<>W THEN IF F<>W THEN IF G<>W THEN GOTO 109
     PRINT "You smell something terrible nearby."
 
     REM Is there a bat nearby?
-650 IF E<>A THEN IF F<>A THEN IF G<>A THEN GOTO 652
-    GOTO 653
-652 IF E<>B THEN IF F<>B THEN IF G<>B THEN GOTO 660
-653 PRINT "You hear a loud squeaking and a flapping of wings."
-660 RETURN
+109 IF E<>A THEN IF F<>A THEN IF G<>A THEN GOTO 111
+    GOTO 112
+111 IF E<>B THEN IF F<>B THEN IF G<>B THEN GOTO 113
+112 PRINT "You hear a loud squeaking and a flapping of wings."
+113 RETURN
 
     REM --- Relocate the Wumpus
-670 GOSUB 750
+116 GOSUB 158
     LET R=R-(R/4*4)
     IF R=1 THEN LET W=E
     IF R=2 THEN LET W=F
@@ -123,89 +123,89 @@
     END
 
     REM --- Relocate bat and player
-680 GOSUB 750
+126 GOSUB 158
     LET R=R-(R/4*4)
     IF R=0 THEN RETURN
     LET P=C
-    GOSUB 900
+    GOSUB 202
     IF R=1 THEN LET D=E
     IF R=2 THEN LET D=F
     IF R=3 THEN LET D=G
-    IF D<>A THEN IF D<>B THEN GOTO 690
-    GOTO 680
-690 PRINT "...moves you to room ",D,"..."
+    IF D<>A THEN IF D<>B THEN GOTO 136
+    GOTO 126
+136 PRINT "...moves you to room ",D,"..."
     IF A=C THEN LET A=D
     IF B=C THEN LET B=D
     LET C=D
-    GOTO 680
+    GOTO 126
 
     REM --- Subroutine to move
-700 PRINT "Where?"
+143 PRINT "Where?"
     INPUT D
-    IF D<>E THEN IF D<>F THEN IF D<>G THEN GOTO 700
+    IF D<>E THEN IF D<>F THEN IF D<>G THEN GOTO 143
     LET C=D
     RETURN
 
     REM -- Find a random unoccupied position
-710 GOSUB 750
+150 GOSUB 158
     LET J=1+R-R/20*20
-    IF J<>A THEN IF J<>B THEN IF J<>C THEN GOTO 714
-    GOTO 710
-714 IF J<>H THEN IF J<>I THEN IF J<>W THEN RETURN
-    GOTO 710
+    IF J<>A THEN IF J<>B THEN IF J<>C THEN GOTO 154
+    GOTO 150
+154 IF J<>H THEN IF J<>I THEN IF J<>W THEN RETURN
+    GOTO 150
 
     REM --- Random number generator
-750 LET S=5*S+35
+158 LET S=5*S+35
     LET S=S-S/4096*4096
     LET R=S
     RETURN
 
     REM --- Subroutine to shoot
-800 PRINT "Shoot how far (1-5)?"
+164 PRINT "Shoot how far (1-5)?"
     INPUT N
-    IF N<1 THEN GOTO 800
-    IF N>5 THEN GOTO 800
-805 LET P=C
+    IF N<1 THEN GOTO 164
+    IF N>5 THEN GOTO 164
+168 LET P=C
     LET L=0
-810 GOSUB 900
+170 GOSUB 202
     LET K=L
     LET L=P
     PRINT "Arrow is next to rooms ",E,",",F,",",G 
-815 PRINT "Shoot where?"
+174 PRINT "Shoot where?"
     INPUT P
-    IF P<>E THEN IF P<>F THEN IF P<>G THEN GOTO 830
-    IF P=K THEN GOTO 835
-    IF P=W THEN GOTO 850
+    IF P<>E THEN IF P<>F THEN IF P<>G THEN GOTO 189
+    IF P=K THEN GOTO 191
+    IF P=W THEN GOTO 196
     LET N=N-1
-    IF N>0 THEN GOTO 810
+    IF N>0 THEN GOTO 170
     LET Q=Q-1
     PRINT "The arrow startles the wumpus."
     LET P=W
-    GOSUB 900
-    GOSUB 670
-    IF Q=0 THEN GOTO 840
+    GOSUB 202
+    GOSUB 116
+    IF Q=0 THEN GOTO 193
     PRINT "You have ",Q," arrows left."
     RETURN
-830 PRINT "The arrow can't reach there."
-    GOTO 815
-835 PRINT "The arrow can't double back on itself."
-    GOTO 815
-840 PRINT "You used your last arrow!"
+189 PRINT "The arrow can't reach there."
+    GOTO 174
+191 PRINT "The arrow can't double back on itself."
+    GOTO 174
+193 PRINT "You used your last arrow!"
     PRINT "Your demise is now inevitable."
     END
-850 PRINT "You hit the wumpus!"
+196 PRINT "You hit the wumpus!"
     END
 
     REM --- Subroutine to set the exits
     REM Input: P - current position
     REM Outputs: E, F, G (exits)
-900 IF P>=1 THEN IF P<=20 THEN GOTO 905
+202 IF P>=1 THEN IF P<=20 THEN GOTO 205
     PRINT "Illegal position ",P
     END
-905 GOTO 900+10*((14+P)/10)
+205 GOTO 200+10*((14+P)/10)
 
     REM --- Outer caves
-910 LET E=P-1
+210 LET E=P-1
     IF E=0 THEN LET E=5
     LET F=P+1
     IF F=6 THEN LET F=1
@@ -213,7 +213,7 @@
     RETURN
 
     REM --- Middle caves
-920 LET E=P-1
+220 LET E=P-1
     IF E=5 THEN LET E=15
     LET F=P+1
     IF F=16 THEN LET F=6
@@ -222,7 +222,7 @@
     RETURN
 
     REM --- Inner caves
-930 LET E=P-1
+230 LET E=P-1
     IF E=15 THEN LET E=20
     LET F=P+1
     IF F=21 THEN LET F=16
