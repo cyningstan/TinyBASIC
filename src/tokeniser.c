@@ -245,7 +245,7 @@ static void default_mode (TokeniserState *state) {
 
   /* deal with EOL whitespace */
   else if (state->ch == '\n') {
-    start_line = line;
+    start_line = line - 1;
     start_pos = pos;
     state->token = token_create_initialise
       (TOKEN_EOL, start_line, start_pos, state->content);

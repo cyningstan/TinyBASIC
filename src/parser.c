@@ -793,6 +793,7 @@ ProgramLineNode *parse_program_line (FILE *fh) {
   /* local variables */
   Token *token; /* token read */
   ProgramLineNode *program_line; /* program line read */
+  int label_encountered = 0; /* 1 if this line has an explicit label */
 
   /* initialise the program line and get the first token */
   input = fh;
@@ -810,15 +811,14 @@ ProgramLineNode *parse_program_line (FILE *fh) {
   /* deal with line label, if supplied */
   if (token->class == TOKEN_NUMBER) {
     program_line->label = atoi (token->content);
+    label_encountered = 1;
     token_destroy (token);
   } else
     stored_token = token;
 
   /* validate the supplied or implied line label */
-  if (validate_line_label (program_line->label))
-    last_label = program_line->label;
-  else {
-    errors_set_code (E_INVALID_LINE_NUMBER, current_line, last_label);
+  if (! validate_line_label (program_line->label)) {
+    errors_set_code (E_INVALID_LINE_NUMBER, current_line, program_line->label);
     program_line_destroy (program_line);
     return NULL;
   }
@@ -831,6 +831,8 @@ ProgramLineNode *parse_program_line (FILE *fh) {
       errors_set_code (E_UNEXPECTED_PARAMETER, current_line, last_label);
     token_destroy (token);
   }
+  if (label_encountered || program_line->statement)
+    last_label = program_line->label;
 
   /* return the program line */
   return program_line;
