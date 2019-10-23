@@ -33,7 +33,7 @@ typedef struct label {
 /* private data */
 typedef struct {
   unsigned int input_used:1; /* true if we need the input routine */
-  unsigned int vars_used:26; /* true for each variable used */
+  unsigned long int vars_used:26; /* true for each variable used */
   CLabel *first_label; /* the start of a list of labels */
   char *code; /* the main block of generated code */
 } Private;
