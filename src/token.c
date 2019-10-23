@@ -15,6 +15,30 @@
 
 
 /*
+ * Internal data structures
+ */
+
+
+/* Private data */
+typedef struct {
+  TokenClass class; /* class of token */
+  int line; /* line on which token was found */
+  int pos; /* position within the line on which token was found */
+  char *content; /* representation of token */
+} Private;
+
+
+/*
+ * Internal Data
+ */
+
+
+/* Convenience variables */
+Token *this;
+Private *data;
+
+
+/*
  * Level 2 Functions
  */
 
@@ -37,26 +61,6 @@ void token_set_content (Token *token, char *content) {
  * Level 1 Functions
  */
 
-
-/*
- * Token constructor without values to initialise
- * returns:
- *   Token*   the created token
- */
-Token *token_create (void) {
-
-  /* local variables */
-  Token *token; /* the token to create */
-
-  /* create the structure and initialise its members */
-  token = malloc (sizeof (Token));
-  token->class = TOKEN_NONE;
-  token->line = token->pos = 0;
-  token->content = NULL;
-
-  /* return the created structure */
-  return token;
-}
 
 /*
  * Set all of the values of an existing token in a single function call.
@@ -86,6 +90,40 @@ void token_initialise (Token *token, TokenClass class, int line, int pos,
 
 
 /*
+ * Token destructor
+ * params:
+ *   Token*   token   the doomed token
+ */
+static void destroy (Token *token) {
+  if (token->content)
+    free (token->content);
+  free (token);
+}
+
+
+/*
+ * Constructors
+ */
+
+/*
+ * Token constructor without values to initialise
+ * returns:
+ *   Token*   the created token
+ */
+Token *token_create (void) {
+
+  /* create the structure and initialise its members */
+  this = malloc (sizeof (Token));
+  this->data = data = malloc (sizeof (Private));
+  data->class = TOKEN_NONE;
+  data->line = data->pos = 0;
+  data->content = NULL;
+
+  /* return the created structure */
+  return this;
+}
+
+/*
  * Token constructor with values to initialise
  * params:
  *   TokenClass   class     class of token to initialise
@@ -95,37 +133,13 @@ void token_initialise (Token *token, TokenClass class, int line, int pos,
  * returns:
  *   Token*                 the created token
  */
-Token *token_create_initialise (TokenClass class, int line, int pos, char *content) {
-
-  /* local variables */
-  Token *token; /* token to create */
+Token *token_create_initialise
+  (TokenClass class, int line, int pos, char *content) {
 
   /* create a blank token */
-  token = token_create ();
-  token->content = NULL;
-  token_initialise (token, class, line, pos, content);
+  token_create ();
+  token_initialise (this, class, line, pos, content);
 
   /* return the new token */
-  return token;
-}
-
-/*
- * Token destructor
- * params:
- *   Token*   token   the doomed token
- */
-void token_destroy (Token *token) {
-  if (token->content)
-    free (token->content);
-  free (token);
-}
-
-/*
- * Token debug output
- * params:
- *   Token*   token   the token to output
- */
-void token_debug_output (Token *token) {
-  printf ("Line %d pos %d class %d content %s\n",
-    token->line, token->pos, token->class, token->content);
+  return this;
 }

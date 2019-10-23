@@ -54,12 +54,11 @@ typedef enum
   } TokenClass;
 
 /* token structure */
-typedef struct
+typedef struct token Token;
+typedef struct token
 {
-  TokenClass class; /* class of token */
-  int line; /* line on which token was found */
-  int pos; /* position within the line on which token was found */
-  char *content; /* representation of token */
+  void *data; /* private data */
+  void (*destroy) (Token *); /* destructor */
 } Token;
 
 
