@@ -34,14 +34,92 @@ typedef struct {
 
 
 /* Convenience variables */
-Token *this;
-Private *data;
+Token *this; /* the token object */
+Private *data; /* the private data */
 
 
 /*
- * Level 2 Functions
+ * Public methods
  */
 
+
+/*
+ * Return the class of the token
+ * params:
+ *   Token*   token   the token object
+ * returns:
+ *   TokenClass       the class of the token
+ */
+static TokenClass get_class (Token *token) {
+  this = token;
+  data = token->data;
+  return data->class;
+}
+
+/*
+ * Return the line on which the token begins
+ * params:
+ *   Token*   token   the token object
+ * returns:
+ *   int              the line on which the token begins
+ */
+static int get_line (Token *token) {
+  this = token;
+  data = token->data;
+  return data->line;
+}
+
+/*
+ * Return the character position on which the token begins
+ * params:
+ *   Token*   token   the token object
+ * returns:
+ *   int              the position on which the token begins
+ */
+static int get_pos (Token *token) {
+  this = token;
+  data = token->data;
+  return data->pos;
+}
+
+/*
+ * Return the content of the token begins
+ * params:
+ *   Token*   token   the token object
+ * returns:
+ *   char*            the text content of the token
+ */
+static char *get_content (Token *token) {
+  this = token;
+  data = token->data;
+  return data->content;
+}
+
+/*
+ * Set the token class
+ * params:
+ *   Token*       token   the token to set
+ *   TokenClass   class   the class
+ */
+static void set_class (Token *token, TokenClass *class) {
+  this = token;
+  data = this->data;
+  data->class = class;
+}
+
+/*
+ * Set the token line and position
+ * params:
+ *   Token*   token   the token to set
+ *   int      line    the line on which the token began
+ *   int      pos     the position on which the token began
+ */
+static void set_line_pos (Token *token, int line, int pos) {
+  this = token;
+  data = this->data;
+  data->line = line;
+  data->pos = pos;;
+}
 
 /*
  * Set the token's text content
@@ -49,23 +127,14 @@ Private *data;
  *   Token*   token     the token to alter
  *   char*    content   the text content to set
  */
-void token_set_content (Token *token, char *content) {
-  if (token->content)
-    free (token->content);
-  token->content = malloc (strlen (content) + 1);
-  strcpy (token->content, content);
+static void set_content (Token *token, char *content) {
+  this = token;
+  data = this->data;
+  if (data->content)
+    free (data->content);
+  data->content = malloc (strlen (content) + 1);
+  strcpy (data->content, content);
 }
-
-
-/*
- * Level 1 Functions
- */
-
-
-/*
- * Public methods
- */
-
 
 /*
  * Set all of the values of an existing token in a single function call.
@@ -79,23 +148,18 @@ void token_set_content (Token *token, char *content) {
 static void initialise (Token *token, TokenClass class, int line, int pos,
   char *content) {
 
+  /* set convenience variables */
+  this = token;
+  data = this->data;
+
   /* initialise the easy members */
-  token->class = class ? class : TOKEN_NONE;
-  token->line = line ? line : 0;
-  token->pos = pos ? pos : 0;
+  data->class = class ? class : TOKEN_NONE;
+  data->line = line ? line : 0;
+  data->pos = pos ? pos : 0;
 
   /* initialise the content */
   if (content)
-    token_set_content (token, content);
-}
-
-/*
- * Set the token class
- * params:
- *   Token*       token   the token to set
- *   TokenClass   class   the class
- */
-static void set_class (Token *token, TokenClass *class) {
+    set_content (this, content);
 }
 
 /*
@@ -136,6 +200,9 @@ Token *new_Token (void) {
 
   /* set up methods */
   this->initialise = initialise;
+  this->set_class = set_class;
+  this->set_line_pos = set_line_pos;
+  this->set_content = set_content;
   this->destroy = destroy;
 
   /* return the created structure */
@@ -152,8 +219,7 @@ Token *new_Token (void) {
  * returns:
  *   Token*                 the created token
  */
-Token *new_Token_initialise
-  (TokenClass class, int line, int pos, char *content) {
+Token *new_Token_init (TokenClass class, int line, int pos, char *content) {
 
   /* create a blank token */
   this = token_create ();

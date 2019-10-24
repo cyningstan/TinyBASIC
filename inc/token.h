@@ -58,8 +58,15 @@ typedef struct token Token;
 typedef struct token
 {
   void *data; /* private data */
+  TokenClass (*get_class) (Token *);
+  int (*get_line) (Token *);
+  int (*get_pos) (Token *);
+  char *(*get_content) (Token *);
+  void (*set_class) (Token *, TokenClass);
+  void (*set_line_pos) (Token *, int, int);
+  void (*set_content) (Token *, char *content);
+  void (*initialise) (Token *, TokenClass, int, int, char *);
   void (*destroy) (Token *); /* destructor */
-  void initialise (Token *, TokenClass, int, int, char *);
 } Token;
 
 
@@ -69,31 +76,11 @@ typedef struct token
 
 
 /*
- * Set the token's text content
- * params:
- *   Token*   token     the token to alter
- *   char*    content   the text content to set
- */
-void token_set_content (Token *token, char *content);
-
-/*
- * Set all of the values of an existing token in a single function call.
- * params:
- *   Token*       token     the token to update
- *   TokenClass   class     class of token to initialise
- *   int          line      line on which the token occurred
- *   int          pos       character position on which the token occurred
- *   char*        content   the textual content of the token
- */
-void token_initialise (Token *token, TokenClass class, int line, int pos,
-  char *content);
-
-/*
  * Token constructor without values to initialise
  * returns:
  *   Token*   the created token
  */
-Token *token_create (void);
+Token *new_Token (void);
 
 /*
  * Token constructor with values to initialise
@@ -105,21 +92,7 @@ Token *token_create (void);
  * returns:
  *   Token*                 the created token
  */
-Token *token_create_initialise (TokenClass class, int line, int pos, char *content);
-
-/*
- * Token destructor
- * params:
- *   Token*   token   the doomed token
- */
-void token_destroy (Token *token);
-
-/*
- * Token debug output
- * params:
- *   Token*   token   the token to output
- */
-void token_debug_output (Token *token);
+Token *new_Token_init (TokenClass class, int line, int pos, char *content);
 
 
 #endif
