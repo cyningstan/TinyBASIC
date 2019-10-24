@@ -59,6 +59,7 @@ typedef struct token
 {
   void *data; /* private data */
   void (*destroy) (Token *); /* destructor */
+  void initialise (Token *, TokenClass, int, int, char *);
 } Token;
 
 

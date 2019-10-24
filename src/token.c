@@ -63,6 +63,11 @@ void token_set_content (Token *token, char *content) {
 
 
 /*
+ * Public methods
+ */
+
+
+/*
  * Set all of the values of an existing token in a single function call.
  * params:
  *   Token*   token   the token to update
@@ -71,7 +76,7 @@ void token_set_content (Token *token, char *content) {
  *   int          pos       character position on which the token occurred
  *   char*        content   the textual content of the token
  */
-void token_initialise (Token *token, TokenClass class, int line, int pos,
+static void initialise (Token *token, TokenClass class, int line, int pos,
   char *content) {
 
   /* initialise the easy members */
@@ -85,9 +90,13 @@ void token_initialise (Token *token, TokenClass class, int line, int pos,
 }
 
 /*
- * Top Level Functions
+ * Set the token class
+ * params:
+ *   Token*       token   the token to set
+ *   TokenClass   class   the class
  */
-
+static void set_class (Token *token, TokenClass *class) {
+}
 
 /*
  * Token destructor
@@ -95,9 +104,13 @@ void token_initialise (Token *token, TokenClass class, int line, int pos,
  *   Token*   token   the doomed token
  */
 static void destroy (Token *token) {
-  if (token->content)
-    free (token->content);
-  free (token);
+  if ((this = token)) {
+    data = this->data;
+    if (data->content)
+      free (data->content);
+    free (data);
+    free (this);
+  }
 }
 
 
@@ -110,14 +123,20 @@ static void destroy (Token *token) {
  * returns:
  *   Token*   the created token
  */
-Token *token_create (void) {
+Token *new_Token (void) {
 
-  /* create the structure and initialise its members */
+  /* create the structure */
   this = malloc (sizeof (Token));
   this->data = data = malloc (sizeof (Private));
+
+  /* initialise properties */
   data->class = TOKEN_NONE;
   data->line = data->pos = 0;
   data->content = NULL;
+
+  /* set up methods */
+  this->initialise = initialise;
+  this->destroy = destroy;
 
   /* return the created structure */
   return this;
@@ -133,12 +152,12 @@ Token *token_create (void) {
  * returns:
  *   Token*                 the created token
  */
-Token *token_create_initialise
+Token *new_Token_initialise
   (TokenClass class, int line, int pos, char *content) {
 
   /* create a blank token */
-  token_create ();
-  token_initialise (this, class, line, pos, content);
+  this = token_create ();
+  this->initialise (this, class, line, pos, content);
 
   /* return the new token */
   return this;
