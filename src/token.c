@@ -101,7 +101,7 @@ static char *get_content (Token *token) {
  *   Token*       token   the token to set
  *   TokenClass   class   the class
  */
-static void set_class (Token *token, TokenClass *class) {
+static void set_class (Token *token, TokenClass class) {
   this = token;
   data = this->data;
   data->class = class;
@@ -200,6 +200,10 @@ Token *new_Token (void) {
 
   /* set up methods */
   this->initialise = initialise;
+  this->get_class = get_class;
+  this->get_line = get_line;
+  this->get_pos = get_pos;
+  this->get_content = get_content;
   this->set_class = set_class;
   this->set_line_pos = set_line_pos;
   this->set_content = set_content;
@@ -222,7 +226,7 @@ Token *new_Token (void) {
 Token *new_Token_init (TokenClass class, int line, int pos, char *content) {
 
   /* create a blank token */
-  this = token_create ();
+  this = new_Token ();
   this->initialise (this, class, line, pos, content);
 
   /* return the new token */
