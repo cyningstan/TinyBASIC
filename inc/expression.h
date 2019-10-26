@@ -7,8 +7,8 @@
  */
 
 
-#ifndef __FACTOR_H__
-#define __FACTOR_H__
+#ifndef __EXPRESSION_H__
+#define __EXPRESSION_H__
 
 
 /* Forward Declarations */

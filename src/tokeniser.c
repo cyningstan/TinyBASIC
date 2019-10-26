@@ -43,11 +43,23 @@ typedef struct {
   int max; /* memory reserved for content */
 } TokeniserState;
 
-/* global variables */
-static int line = 1; /* current line in the input file */
-static int pos = 0; /* current position on the input line */
-static int start_line = 1; /* line on which a token started */
-static int start_pos = 0; /* position on which a token started */
+/* Private data */
+typedef struct {
+  int line, /* current line in the input file */
+    pos, /* current position on the input line */
+    start_line, /* line on which a token started */
+    start_pos; /* position on which a token started */
+} Private;
+
+
+/*
+ * File level variables
+ */
+
+
+/* convenience variables */
+TokenStream *this; /* token stream passed in to public method */
+Private *data; /* private data for this */
 
 
 /*
@@ -70,14 +82,14 @@ static int read_character (TokeniserState *state) {
   int ch; /* character read from stream */
 
   /* read the character */
-  ch = fgetc (state->input);
+  ch = fgetc (data->input);
 
   /* update the position and line counters */
   if (ch == '\n') {
-    ++line;
-    pos = 0;
+    ++data->line;
+    data->pos = 0;
   } else {
-    ++pos;
+    ++data->pos;
   }
 
   /* return the character */
@@ -93,11 +105,11 @@ static int read_character (TokeniserState *state) {
  *   TokeniserState*   state   current state of the tokeniser
  */
 static void unread_character (TokeniserState *state) {
-  ungetc (state->ch, state->input);
+  ungetc (state->ch, data->input);
   if (state->ch == '\n')
-    --line;
+    --data->line;
   else
-    --pos;
+    --data->pos;
 }
 
 /*
@@ -124,7 +136,6 @@ static void store_character (TokeniserState *state) {
   length = strlen (state->content);
   state->content [length++] = state->ch;
   state->content [length] = '\0';
-
 }
 
 /*
@@ -239,23 +250,23 @@ static void default_mode (TokeniserState *state) {
   if (state->ch == ' ' ||
       state->ch == '\t') {
     state->ch = read_character (state);
-    start_line = line;
-    start_pos = pos;
+    data->start_line = data->line;
+    data->start_pos = data->pos;
   }
 
   /* deal with EOL whitespace */
   else if (state->ch == '\n') {
-    start_line = line - 1;
-    start_pos = pos;
+    data->start_line = data->line - 1;
+    data->start_pos = data->pos;
     state->token = new_Token_init
-      (TOKEN_EOL, start_line, start_pos, state->content);
+      (TOKEN_EOL, data->start_line, data->start_pos, state->content);
   }
 
   /* alphabetic characters start a word */
   else if ((state->ch >= 'A' && state->ch <= 'Z') ||
 	   (state->ch >= 'a' && state->ch <= 'z')) {
-    start_line = line;
-    start_pos = pos;
+    data->start_line = data->line;
+    data->start_pos = data->pos;
     state->mode = WORD_MODE;
   }
 
@@ -265,8 +276,8 @@ static void default_mode (TokeniserState *state) {
 
   /* check for tokens starting with less-than (<, <=, <>) */
   else if (state->ch == '<') {
-    start_line = line;
-    start_pos = pos;
+    data->start_line = data->line;
+    data->start_pos = data->pos;
     store_character (state);
     state->ch = read_character (state);
     state->mode = LESS_THAN_MODE;
@@ -274,8 +285,8 @@ static void default_mode (TokeniserState *state) {
 
   /* check for tokens starting with greater-than (>, >=) */
   else if (state->ch == '>') {
-    start_line = line;
-    start_pos = pos;
+    data->start_line = data->line;
+    data->start_pos = data->pos;
     store_character (state);
     state->ch = read_character (state);
     state->mode = GREATER_THAN_MODE;
@@ -283,8 +294,8 @@ static void default_mode (TokeniserState *state) {
 
   /* deal with other symbol operators */
   else if (strchr ("+-*/=(),", state->ch) != NULL) {
-    start_line = line;
-    start_pos = pos;
+    data->start_line = data->line;
+    data->start_pos = data->pos;
     store_character (state);
     state->token = new_Token_init (identify_symbol (state->ch),
       start_line, start_pos, state->content);
@@ -302,8 +313,8 @@ static void default_mode (TokeniserState *state) {
   else if (state->ch == EOF) {
     start_line = line;
     start_pos = pos;
-    state->token = new_Token_init (TOKEN_EOF, start_line, start_pos,
-      state->content);
+    state->token = new_Token_init
+      (TOKEN_EOF, data->start_line, data->start_pos, state->content);
   }
 
   /* other characters are illegal */
@@ -312,7 +323,7 @@ static void default_mode (TokeniserState *state) {
     start_pos = pos;
     store_character (state);
     state->token = new_Token_init
-      (TOKEN_ILLEGAL, start_line, start_pos, state->content);
+      (TOKEN_ILLEGAL, data->start_line, data->start_pos, state->content);
   }
 }
 
@@ -347,9 +358,8 @@ static void word_mode (TokeniserState *state) {
     }
     else
       state->token = new_Token_init
-        (class, start_line, start_pos, state->content);
+        (class, data->start_line, data->start_pos, state->content);
   }
-
 }
 
 /*
@@ -388,7 +398,7 @@ static void number_mode (TokeniserState *state) {
     if (state->ch != EOF)
       unread_character (state);
     state->token = new_Token_init
-      (TOKEN_NUMBER, start_line, start_pos, state->content);
+      (TOKEN_NUMBER, data->start_line, data->start_pos, state->content);
   }
 
 }
@@ -407,8 +417,8 @@ static void less_than_mode (TokeniserState *state) {
   else
     unread_character (state);
   state->token = new_Token_init
-    (identify_compound_symbol (state->content), start_line, start_pos,
-     state->content);
+    (identify_compound_symbol (state->content), data->start_line,
+     data->start_pos, state->content);
 }
 
 /*
@@ -425,8 +435,8 @@ static void greater_than_mode (TokeniserState *state) {
   else
     ungetc (state->ch, state->input);
   state->token = new_Token_init
-    (identify_compound_symbol (state->content), start_line, start_pos,
-     state->content);
+    (identify_compound_symbol (state->content), data->start_line,
+     data->start_pos, state->content);
 }
 
 /*
@@ -442,7 +452,7 @@ static void string_literal_mode (TokeniserState *state) {
   /* a quote terminates the string */
   if (state->ch == '"')
     state->token = new_Token_init
-      (TOKEN_STRING, start_line, start_pos, state->content);
+      (TOKEN_STRING, data->start_line, data->start_pos, state->content);
 
   /* a backslash escapes the next character */
   else if (state->ch == '\\') {
@@ -454,7 +464,7 @@ static void string_literal_mode (TokeniserState *state) {
   /* EOF generates an error */
   else if (state->ch == EOF)
     state->token = new_Token_init
-      (TOKEN_ILLEGAL, start_line, start_pos, state->content);
+      (TOKEN_ILLEGAL, data->start_line, data->start_pos, state->content);
 
   /* all other characters are part of the string */
   else {
@@ -471,23 +481,21 @@ static void string_literal_mode (TokeniserState *state) {
 
 /*
  * Get the next token
- * globals:
- *   int     start_line   line on which the current token started
- *   int     start_pos    char pos on which the current token started
  * params:
- *   FILE*   input        handle for the input file
+ *   TokenStream*   token_stream   the token stream being processed
  * returns:
- *   Token*               the token built
+ *   Token*                        the token built
  */
-Token *tokeniser_next_token (FILE *input) {
+static Token *next (TokenStream *token_stream) {
 
   /* local variables */
   TokeniserState state; /* current state of reading */
   Token *return_token; /* token to return */
 
-  /* initialise the state */
+  /* initialise */
+  this = token_stream;
+  data = this->data;
   state.token = NULL;
-  state.input = input;
   state.mode = DEFAULT_MODE;
   state.max = 1024;
   state.content = malloc (state.max);
@@ -519,8 +527,8 @@ Token *tokeniser_next_token (FILE *input) {
       string_literal_mode (&state);
       break;
     default:
-      state.token = new_Token_init (TOKEN_EOF, start_line, start_pos,
-        state.content);
+      state.token = new_Token_init
+	(TOKEN_EOF, data->start_line, data->start_pos, state.content);
       state.ch = EOF; /* temporary hack */
     }
   }
@@ -536,11 +544,56 @@ Token *tokeniser_next_token (FILE *input) {
 
 /*
  * Getter for the current line number
- * globals:
- *   int   line   the current line number
+ * paramss:
+ *   TokenStream*   token_stream   the token stream being processed
  * returns:
- *   int          the current line number returned
+ *   int                           the current line number returned
  */
-int tokeniser_get_line (void) {
-  return line;
+static int get_line (TokenStream *token_stream) {
+  this = token_stream;
+  data = this->data;
+  return data->line;
+}
+
+/*
+ * Destructor for a TokenStream
+ * params:
+ *   TokenStream*   token_stream   the doomed token stream
+ */
+void destroy (TokenStream *token_stream) {
+  if (token_stream) {
+    if (token_stream->data)
+      free (token_stream->data);
+    free (token_stream);
+  }
+}
+
+
+/*
+ * Constructors
+ */
+
+
+/*
+ * Constructor for TokenStream
+ * params:
+ *   FILE*   input   Input file
+ * returns:
+ *   TokenStream*    The new token stream
+ */
+TokenStream *new_TokenStream (FILE *input) {
+
+  /* allocate the memory */
+  this = malloc (sizeof (TokenStream));
+  this->data = data = malloc (sizeof (Private));
+
+  /* initialise methods */
+  this->next = next;
+  this->get_line = get_line;
+  this->destroy = destroy;
+
+  /* initialise data */
+  data->input = input;
+  data->line = data->start_line = 1;
+  data->pos = data->start_pos = 0;
 }
