@@ -299,7 +299,7 @@ int main (int argc, char **argv) {
 
   /* otherwise attempt to open the file */
   if (!(input = fopen (input_filename, "r"))) {
-    printf ("Error: cannot open file %s\n", argv [1]);
+    printf ("Error: cannot open file %s\n", input_filename);
     return E_FILE_NOT_FOUND;
   }
 
