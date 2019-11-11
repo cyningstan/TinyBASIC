@@ -36,11 +36,13 @@ typedef struct {
   unsigned long int vars_used:26; /* true for each variable used */
   CLabel *first_label; /* the start of a list of labels */
   char *code; /* the main block of generated code */
+  ErrorHandler *errors; /* error handler for compilation */
 } Private;
 
-/* internal variables */
-CProgram *this; /* the object being worked on */
-Private *data; /* the private data of the object */
+/* convenience variables */
+static CProgram *this; /* the object being worked on */
+static Private *data; /* the private data of the object */
+static ErrorHandler *errors; /* the error handler */
 
 
 /*
@@ -93,7 +95,8 @@ static char *output_factor (FactorNode *factor) {
       }
       break;
     default:
-      errors_set_code (E_INVALID_EXPRESSION, parser_line (), parser_label ());
+      errors->set_code (errors, E_INVALID_EXPRESSION, parser_line (), 
+        parser_label ());
   }
 
   /* apply a negative sign, if necessary */
@@ -133,7 +136,7 @@ static char *output_term (TermNode *term) {
   /* begin with the initial factor */
   if ((term_text = output_factor (term->factor))) {
     rhfactor = term->next;
-    while (! errors_get_code () && rhfactor) {
+    while (! errors->get_code (errors) && rhfactor) {
 
       /* ascertain the operator text */
       switch (rhfactor->op) {
@@ -144,14 +147,14 @@ static char *output_term (TermNode *term) {
         operator_char = '/';
         break;
       default:
-        errors_set_code (E_INVALID_EXPRESSION, parser_line (),
+        errors->set_code (errors, E_INVALID_EXPRESSION, parser_line (),
 	  parser_label ());
         free (term_text);
         term_text = NULL;
       }
 
       /* get the factor that follows the operator */
-      if (! errors_get_code ()
+      if (! errors->get_code (errors)
         && (factor_text = output_factor (rhfactor->factor))) {
         term_text = realloc (term_text,
           strlen (term_text) + strlen (factor_text) + 2);
@@ -193,7 +196,7 @@ static char *output_expression (ExpressionNode *expression) {
   /* begin with the initial term */
   if ((expression_text = output_term (expression->term))) {
     rhterm = expression->next;
-    while (! errors_get_code () && rhterm) {
+    while (! errors->get_code (errors) && rhterm) {
 
       /* ascertain the operator text */
       switch (rhterm->op) {
@@ -204,14 +207,14 @@ static char *output_expression (ExpressionNode *expression) {
         operator_char = '-';
         break;
       default:
-        errors_set_code (E_INVALID_EXPRESSION, parser_line (),
+        errors->set_code (errors, E_INVALID_EXPRESSION, parser_line (),
 	  parser_label ());
         free (expression_text);
         expression_text = NULL;
       }
 
       /* get the terms that follow the operators */
-      if (! errors_get_code ()
+      if (! errors->get_code (errors)
         && (term_text = output_term (rhterm->term))) {
         expression_text = realloc (expression_text,
           strlen (expression_text) + strlen (term_text) + 2);
@@ -849,17 +852,26 @@ static void destroy (CProgram *c_program) {
 
 /*
  * Constructor
+ * params:
+ *   ErrorHandler*   compiler_errors   the error handler
  * changes:
- *   CProgram*   this   the object being created
- *   Private*    data   the object's private data
+ *   CProgram*       this              the object being created
+ *   Private*        data              the object's private data
  * returns:
- *   CProgram*          the created object
+ *   CProgram*                         the created object
  */
-CProgram *new_CProgram (void) {
+CProgram *new_CProgram (ErrorHandler *compiler_errors) {
 
-  /* allocate space and initialise */
+  /* allocate space */
   this = malloc (sizeof (CProgram));
   this->private_data = data = malloc (sizeof (Private));
+
+  /* initialise methods */
+  this->generate = generate;
+  this->destroy = destroy;
+
+  /* initialise properties */
+  errors = data->errors = compiler_errors;
   data->input_used = 0;
   data->vars_used = 0;
   data->first_label = NULL;
@@ -867,8 +879,6 @@ CProgram *new_CProgram (void) {
   *data->code = '\0';
   this->c_output = malloc (1);
   *this->c_output = '\0';
-  this->generate = generate;
-  this->destroy = destroy;
 
   /* return the created structure */
   return this;

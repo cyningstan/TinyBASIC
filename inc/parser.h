@@ -13,16 +13,18 @@
 
 /* pre-requisite headers */
 #include "statement.h"
+#include "errors.h"
 
 
 /*
  * Parse the whole program
  * params:
- *   FILE*   input   the input file
+ *   FILE*           input          the input file
+ *   ErrorHandler*   parse_errors   parser error handler
  * returns:
- *   ProgramNode*    a pointer to the whole program
+ *   ProgramNode*                   a pointer to the whole program
  */
-ProgramNode *parse_program (FILE *input);
+ProgramNode *parse_program (FILE *input, ErrorHandler *parse_errors);
 
 /*
  * Return the current source line we're parsing

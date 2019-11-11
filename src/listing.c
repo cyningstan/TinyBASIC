@@ -19,6 +19,15 @@
 
 
 /*
+ * Data Definitions
+ */
+
+
+/* convenience variables */
+static ErrorHandler *errors; /* the error handler */
+
+
+/*
  * Forward References
  */
 
@@ -67,7 +76,7 @@ static char *output_factor (FactorNode *factor) {
       }
       break;
     default:
-      errors_set_code (E_INVALID_EXPRESSION, parser_line (), parser_label ());
+      errors->set_code (errors, E_INVALID_EXPRESSION, parser_line (), parser_label ());
   }
 
   /* apply a negative sign, if necessary */
@@ -101,7 +110,7 @@ static char *output_term (TermNode *term) {
   /* begin with the initial factor */
   if ((term_text = output_factor (term->factor))) {
     rhfactor = term->next;
-    while (! errors_get_code () && rhfactor) {
+    while (! errors->get_code (errors) && rhfactor) {
 
       /* ascertain the operator text */
       switch (rhfactor->op) {
@@ -112,14 +121,14 @@ static char *output_term (TermNode *term) {
         operator_char = '/';
         break;
       default:
-        errors_set_code (E_INVALID_EXPRESSION, parser_line (),
+        errors->set_code (errors, E_INVALID_EXPRESSION, parser_line (),
 	  parser_label ());
         free (term_text);
         term_text = NULL;
       }
 
       /* get the factor that follows the operator */
-      if (! errors_get_code ()
+      if (! errors->get_code (errors)
         && (factor_text = output_factor (rhfactor->factor))) {
         term_text = realloc (term_text,
           strlen (term_text) + strlen (factor_text) + 2);
@@ -156,7 +165,7 @@ static char *output_expression (ExpressionNode *expression) {
   /* begin with the initial term */
   if ((expression_text = output_term (expression->term))) {
     rhterm = expression->next;
-    while (! errors_get_code () && rhterm) {
+    while (! errors->get_code (errors) && rhterm) {
 
       /* ascertain the operator text */
       switch (rhterm->op) {
@@ -167,14 +176,14 @@ static char *output_expression (ExpressionNode *expression) {
         operator_char = '-';
         break;
       default:
-        errors_set_code (E_INVALID_EXPRESSION, parser_line (),
+        errors->set_code (errors, E_INVALID_EXPRESSION, parser_line (),
 	  parser_label ());
         free (expression_text);
         expression_text = NULL;
       }
 
       /* get the terms that follow the operators */
-      if (! errors_get_code ()
+      if (! errors->get_code (errors)
         && (term_text = output_term (rhterm->term))) {
         expression_text = realloc (expression_text,
           strlen (expression_text) + strlen (term_text) + 2);
@@ -498,17 +507,22 @@ static char *output_statement (StatementNode *statement) {
 /*
  * Program Line Output
  * params:
- *   ProgramLineNode*   program_line   the line to output
+ *   ProgramLineNode*   program_line     the line to output
+ *   ErrorHandler*      listing_errors   error handler for listing
  * returns:
- *   char*                             the reconstructed line
+ *   char*                               the reconstructed line
  */
-char *listing_line_output (ProgramLineNode *program_line) {
+char *listing_line_output (ProgramLineNode *program_line,
+  ErrorHandler *listing_errors) {
 
   /* local variables */
   char
     label_text [7], /* line label text */
     *output = NULL, /* the rest of the output */
     *line = NULL; /* the assembled line */
+
+  /* initialise convenience variables */
+  errors = listing_errors;
 
   /* initialise the line label */
   if (program_line->label)

@@ -15,8 +15,10 @@
 /*
  * Program Line Output
  * params:
- *   ProgramLineNode*   program_line   the line to output
+ *   ProgramLineNode*   program_line     the line to output
+ *   ErrorHandler*      listing_errors   error handler for listing
  * returns:
- *   char*                             the reconstructed line
+ *   char*                               the reconstructed line
  */
-char *listing_line_output (ProgramLineNode *program_line);
+char *listing_line_output (ProgramLineNode *program_line,
+  ErrorHandler *listing_errors);

@@ -64,7 +64,7 @@ typedef struct token
   char *(*get_content) (Token *);
   void (*set_class) (Token *, TokenClass);
   void (*set_line_pos) (Token *, int, int);
-  void (*set_content) (Token *, char *content);
+  void (*set_content) (Token *, char *);
   void (*initialise) (Token *, TokenClass, int, int, char *);
   void (*destroy) (Token *); /* destructor */
 } Token;

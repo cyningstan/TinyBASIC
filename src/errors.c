@@ -13,10 +13,30 @@
 #include <string.h>
 #include "errors.h"
 
+
+/*
+ * Internal Data Structures
+ */
+
+
+/* Private data */
+typedef struct {
+  ErrorCode error; /* the last error encountered */
+  int line; /* the source line on which the error occurred */
+  int label; /* the label for the source line */
+} Private;
+
+
+/*
+ * Internal Data
+ */
+
+
+/* convenience variables */
+ErrorHandler *this; /* object being worked on */
+Private *data; /* private data of object being worked on */
+
 /* global variables */
-static ErrorCode error = E_NONE; /* the last error encountered */
-static int line = 0; /* the source line on which the error occurred */
-static int label = 0; /* the label for the source line */
 static char *messages[E_LAST] = { /* the error messages */
   "Successful",
   "Invalid line number",
@@ -38,7 +58,7 @@ static char *messages[E_LAST] = { /* the error messages */
 
 
 /*
- * Top Level Routines
+ * Public Methods
  */
 
 
@@ -53,55 +73,68 @@ static char *messages[E_LAST] = { /* the error messages */
  *   int         new_line    the source line to set
  *   int         new_label   the label to set
  */
-void errors_set_code (ErrorCode new_error, int new_line, int new_label) {
-  error = new_error;
-  line = new_line;
-  label = new_label;
+static void set_code (ErrorHandler *errors, ErrorCode new_error, int new_line,
+  int new_label) {
+
+  /* initialise */
+  this = errors;
+  data = this->data;
+
+  /* set the properties */
+  data->error = new_error;
+  data->line = new_line;
+  data->label = new_label;
 }
 
 /*
  * Return the last error code encountered
- * globals:
- *   ErrorCode   error       the last error encountered
+ * params:
+ *   ErrorHandler*   errors   the error handler
  * returns:
- *   ErrorCode               the last error encountered
+ *   ErrorCode                the last error encountered
  */
-ErrorCode errors_get_code (void) {
-  return error;
+static ErrorCode get_code (ErrorHandler *errors) {
+  this = errors;
+  data = this->data;
+  return data->error;
 }
 
 /*
  * Return the last error line encountered
- * globals:
- *   int   line   the source line of the last error
+ * params:
+ *   ErrorHandler*   errors   the error handler
  * returns:
- *   int          the source line to return
+ *   int                      the source line of the last error
  */
-ErrorCode errors_get_line (void) {
-  return line;
+static int get_line (ErrorHandler *errors) {
+  this = errors;
+  data = this->data;
+  return data->line;
 }
 
 /*
  * Return the last error label encountered
- * globals:
- *   int   label   the line label of the last error
+ * params:
+ *   ErrorHandler*   errors   the error handler
  * returns:
- *   int           the line label to return
+ *   int                      the line label of the last error
  */
-ErrorCode errors_get_label (void) {
-  return label;
+static int get_label (ErrorHandler *errors) {
+  this = errors;
+  data = this->data;
+  return data->label;
 }
 
 /*
  * Generate an error message
+ * params:
+ *   ErrorHandler*   errors     the error handler
  * globals:
- *   ErrorCode   error   the code is used to look up the message
- *   int         line    the source line is added for token/parse errors
- *   int         label   the line's label is added for parse/runtime errors
+ *   char*           messages   a list of error messages
  * returns:
- *   char*               the full error message to return
+ *   char*                      the full error message
  */
-char *errors_text (void) {
+static char *get_text (ErrorHandler *errors) {
 
   /* local variables */
   char
@@ -109,24 +142,28 @@ char *errors_text (void) {
     *line_text, /* source line N */
     *label_text; /* label N */
 
+  /* initialise the error object */
+  this = errors;
+  data = this->data;
+
   /* get the source line, if there is one */
   line_text = malloc (20);
-  if (line)
-    sprintf (line_text, ", source line %d", line);
+  if (data->line)
+    sprintf (line_text, ", source line %d", data->line);
   else
     strcpy (line_text, "");
 
   /* get the source label, if there is one */
   label_text = malloc (19);
-  if (label)
-    sprintf (label_text, ", line label %d", label);
+  if (data->label)
+    sprintf (label_text, ", line label %d", data->label);
   else
     strcpy (label_text, "");
 
   /* put the error message together */
-  message = malloc (strlen (messages[error]) + strlen (line_text)
+  message = malloc (strlen (messages[data->error]) + strlen (line_text)
     + strlen (label_text) + 1);
-  strcpy (message, messages[error]);
+  strcpy (message, messages[data->error]);
   strcat (message, line_text);
   strcat (message, label_text);
   free (line_text);
@@ -134,4 +171,51 @@ char *errors_text (void) {
 
   /* return the assembled error message */
   return message;
+}
+
+/*
+ * ErrorHandler destructor
+ * params:
+ *   ErrorHandler*   errors   the doomed error handler
+ */
+static void destroy (ErrorHandler *errors) {
+  if ((this = errors)) {
+    data = this->data;
+    free (data);
+    free (this);
+  }
+}
+
+
+/*
+ * Constructors
+ */
+
+
+/*
+ * Principal constructor
+ * returns:
+ *   ErrorHandler*   the new error handler object
+ */
+ErrorHandler *new_ErrorHandler (void) {
+
+    /* allocate memory */
+    this = malloc (sizeof (ErrorHandler));
+    this->data = data = malloc (sizeof (Private));
+
+    /* initialise the methods */
+    this->set_code = set_code;
+    this->get_code = get_code;
+    this->get_line = get_line;
+    this->get_label = get_label;
+    this->get_text = get_text;
+    this->destroy = destroy;
+
+    /* initialise the properties */
+    data->error = E_NONE;
+    data->line = 0;
+    data->label = 0;
+
+    /* return the new object */
+    return this;
 }
