@@ -36,7 +36,6 @@ typedef enum {
 /* current state information */
 typedef struct {
   Token *token; /* token to return */
-  FILE *input; /* the input file */
   Mode mode; /* current reading mode */
   int ch; /* last-read character */
   char *content; /* content of token under construction */
@@ -45,6 +44,7 @@ typedef struct {
 
 /* Private data */
 typedef struct {
+  FILE *input; /* the input file */
   int line, /* current line in the input file */
     pos, /* current position on the input line */
     start_line, /* line on which a token started */
@@ -298,29 +298,29 @@ static void default_mode (TokeniserState *state) {
     data->start_pos = data->pos;
     store_character (state);
     state->token = new_Token_init (identify_symbol (state->ch),
-      start_line, start_pos, state->content);
+      data->start_line, data->start_pos, state->content);
   }
 
   /* double quotes start a string literal */
   else if (state->ch == '"') {
-    start_line = line;
-    start_pos = pos;
+    data->start_line = data->line;
+    data->start_pos = data->pos;
     state->ch = read_character (state);
     state->mode = STRING_LITERAL_MODE;
   }
 
   /* detect end of file */
   else if (state->ch == EOF) {
-    start_line = line;
-    start_pos = pos;
+    data->start_line = data->line;
+    data->start_pos = data->pos;
     state->token = new_Token_init
       (TOKEN_EOF, data->start_line, data->start_pos, state->content);
   }
 
   /* other characters are illegal */
   else {
-    start_line = line;
-    start_pos = pos;
+    data->start_line = data->line;
+    data->start_pos = data->pos;
     store_character (state);
     state->token = new_Token_init
       (TOKEN_ILLEGAL, data->start_line, data->start_pos, state->content);
@@ -433,7 +433,7 @@ static void greater_than_mode (TokeniserState *state) {
   if (state->ch == '=' || state->ch == '<')
     store_character (state);
   else
-    ungetc (state->ch, state->input);
+    ungetc (state->ch, data->input);
   state->token = new_Token_init
     (identify_compound_symbol (state->content), data->start_line,
      data->start_pos, state->content);
@@ -596,4 +596,7 @@ TokenStream *new_TokenStream (FILE *input) {
   data->input = input;
   data->line = data->start_line = 1;
   data->pos = data->start_pos = 0;
+
+  /* return new token stream */
+  return this;
 }
