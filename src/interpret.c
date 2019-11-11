@@ -39,6 +39,7 @@ static ProgramLineNode *current_line; /* current line we're executing */
 static GosubStackNode *gosub_stack = NULL; /* the top of the GOSUB stack */
 static int variables[26]; /* the numeric variables */
 static int run_ended = 0; /* set to 1 when an END is encountered */
+static ErrorHandler *errors; /* the error handler */
 
 
 /*
@@ -79,12 +80,12 @@ int interpret_factor (FactorNode *factor) {
 
     /* this only happens if the parser has failed in its duty */
     default:
-      errors_set_code (E_INVALID_EXPRESSION, 0, current_line->label);
+      errors->set_code (errors, E_INVALID_EXPRESSION, 0, current_line->label);
   }
 
   /* check the result and return it*/
   if (result_store < -32768 || result_store > 32767)
-    errors_set_code (E_OVERFLOW, 0, current_line->label);
+    errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
   return result_store;
 }
 
@@ -111,18 +112,18 @@ int interpret_term (TermNode *term) {
   rhfactor = term->next;
 
   /* adjust store according to successive rh factors */
-  while (rhfactor && ! errors_get_code ()) {
+  while (rhfactor && ! errors->get_code (errors)) {
     switch (rhfactor->op) {
       case TERM_OPERATOR_MULTIPLY:
         result_store *= interpret_factor (rhfactor->factor);
 	if (result_store < -32768 || result_store > 32767)
-	  errors_set_code (E_OVERFLOW, 0, current_line->label);
+	  errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
         break;
       case TERM_OPERATOR_DIVIDE:
         if ((divisor = interpret_factor (rhfactor->factor)))
           result_store /= divisor;
         else
-          errors_set_code (E_DIVIDE_BY_ZERO, 0, current_line->label);
+          errors->set_code (errors, E_DIVIDE_BY_ZERO, 0, current_line->label);
         break;
       default:
         break;
@@ -156,17 +157,17 @@ int interpret_expression (ExpressionNode *expression) {
   rhterm = expression->next;
 
   /* adjust store according to successive rh terms */
-  while (rhterm && ! errors_get_code ()) {
+  while (rhterm && ! errors->get_code (errors)) {
     switch (rhterm->op) {
       case EXPRESSION_OPERATOR_PLUS:
         result_store += interpret_term (rhterm->term);
 	if (result_store < -32768 || result_store > 32767)
-	  errors_set_code (E_OVERFLOW, 0, current_line->label);
+	  errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
         break;
       case EXPRESSION_OPERATOR_MINUS:
         result_store -= interpret_term (rhterm->term);
 	if (result_store < -32768 || result_store > 32767)
-	  errors_set_code (E_OVERFLOW, 0, current_line->label);
+	  errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
         break;
       default:
         break;
@@ -200,7 +201,7 @@ ProgramLineNode *interpret_label_search (int jump_label) {
 
   /* check for errors and return what was found */
   if (! found)
-    errors_set_code (E_INVALID_LINE_NUMBER, 0, current_line->label);
+    errors->set_code (errors, E_INVALID_LINE_NUMBER, 0, current_line->label);
   return found;
 }
 
@@ -260,7 +261,7 @@ void interpret_if_statement (IfStatementNode *ifn) {
   }
 
   /* perform the conditional statement */
-  if (comparison && ! errors_get_code ())
+  if (comparison && ! errors->get_code (errors))
     interpret_statement (ifn->statement);
   else
     current_line = current_line->next;
@@ -274,7 +275,7 @@ void interpret_if_statement (IfStatementNode *ifn) {
 void interpret_goto_statement (GotoStatementNode *goton) {
   int label; /* the line label to go to */
   label = interpret_expression (goton->label);
-  if (! errors_get_code ())
+  if (! errors->get_code (errors))
     current_line = interpret_label_search (label);
 }
 
@@ -297,7 +298,7 @@ void interpret_gosub_statement (GosubStatementNode *gosubn) {
 
   /* branch to the subroutine requested */
   label = interpret_expression (gosubn->label);
-  if (! errors_get_code ())
+  if (! errors->get_code (errors))
     current_line = interpret_label_search (label);
 }
 
@@ -319,7 +320,7 @@ void interpret_return_statement (void) {
 
   /* no GOSUBs led here, so raise an error */
   else
-    errors_set_code (E_RETURN_WITHOUT_GOSUB, 0, current_line->label);
+    errors->set_code (errors, E_RETURN_WITHOUT_GOSUB, 0, current_line->label);
 }
 
 /*
@@ -345,7 +346,7 @@ void interpret_print_statement (PrintStatementNode *printn) {
         break;
       case OUTPUT_EXPRESSION:
         result = interpret_expression (outn->output.expression);
-        if (! errors_get_code ()) {
+        if (! errors->get_code (errors)) {
           printf ("%d", result);
           ++items;
         }
@@ -385,9 +386,9 @@ void interpret_input_statement (InputStatementNode *inputn) {
     do {
       value = 10 * value + (ch - '0');
       if (value * sign < -32768 || value * sign > 32767)
-	errors_set_code (E_OVERFLOW, 0, current_line->label);
+	errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
       ch = getchar ();
-    } while (ch >= '0' && ch <= '9' && ! errors_get_code ());
+    } while (ch >= '0' && ch <= '9' && ! errors->get_code (errors));
     variables[variable->variable - 1] = sign * value;
     variable = variable->next;
   }
@@ -450,7 +451,7 @@ void interpret_statement (StatementNode *statement) {
  */
 void interpret_program_from (ProgramLineNode *program_line) {
   current_line = program_line;
-  while (current_line && ! run_ended && ! errors_get_code ())
+  while (current_line && ! run_ended && ! errors->get_code (errors))
     interpret_statement (current_line->statement);
 }
 
@@ -463,10 +464,12 @@ void interpret_program_from (ProgramLineNode *program_line) {
 /*
  * Interpret the program from the beginning
  * params:
- *   ProgramNode*   program   the program to interpret
+ *   ProgramNode*    program          the program to interpret
+ *   ErrorHandler*   runtime_errors   runtime error handler
  */
-void interpret_program (ProgramNode *program) {
+void interpret_program (ProgramNode *program, ErrorHandler *runtime_errors) {
   stored_program = program;
+  errors = runtime_errors;
   interpret_initialise_variables ();
   interpret_program_from (program->first);
 }

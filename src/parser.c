@@ -44,6 +44,7 @@ static int current_line = 0; /* the last source line parsed */
 static int end_of_file = 0; /* end of file signal */
 static Token *stored_token = NULL; /* token read ahead */
 static TokenStream *stream; /* the input stream */
+static ErrorHandler *errors; /* the parse error handler */
 
 
 /*
@@ -114,7 +115,7 @@ FactorNode *parse_factor (void) {
     factor->class = FACTOR_VALUE;
     factor->data.value = atoi (token->get_content (token));
     if (factor->data.value < -32768 || factor->data.value > 32767)
-      errors_set_code (E_OVERFLOW, start_line, last_label);
+      errors->set_code (errors, E_OVERFLOW, start_line, last_label);
     token->destroy (token);
   }
 
@@ -137,7 +138,7 @@ FactorNode *parse_factor (void) {
         factor->class = FACTOR_EXPRESSION;
         factor->data.expression = expression;
       } else {
-        errors_set_code (E_MISSING_RIGHT_PARENTHESIS, start_line, 
+        errors->set_code (errors, E_MISSING_RIGHT_PARENTHESIS, start_line, 
           last_label);
         factor_destroy (factor);
         factor = NULL;
@@ -148,7 +149,7 @@ FactorNode *parse_factor (void) {
 
     /* clean up after invalid parenthesised expression */
     else {
-      errors_set_code (E_INVALID_EXPRESSION, token->get_line (token),
+      errors->set_code (errors, E_INVALID_EXPRESSION, token->get_line (token),
 	last_label);
       token->destroy (token);
       factor_destroy (factor);
@@ -158,7 +159,7 @@ FactorNode *parse_factor (void) {
 
   /* deal with other errors */
   else {
-    errors_set_code (E_INVALID_EXPRESSION, token->get_line (token),
+    errors->set_code (errors, E_INVALID_EXPRESSION, token->get_line (token),
       last_label);
     factor_destroy (factor);
     token->destroy (token);
@@ -200,7 +201,7 @@ TermNode *parse_term (void) {
 
     /* look for subsequent factors */
     while ((token = get_token_to_parse ())
-      && ! errors_get_code ()
+      && ! errors->get_code (errors)
       && (token->get_class (token) == TOKEN_MULTIPLY
       || token->get_class (token) == TOKEN_DIVIDE)) {
 
@@ -221,9 +222,9 @@ TermNode *parse_term (void) {
       /* set an error if we read an operator but not a factor */
       else {
         rhfactor_destroy (rhfactor);
-        if (! errors_get_code ()) /* belt & braces */
-          errors_set_code (E_INVALID_EXPRESSION, token->get_line (token), 
-            last_label);
+        if (! errors->get_code (errors)) /* belt & braces */
+          errors->set_code (errors, E_INVALID_EXPRESSION,
+            token->get_line (token), last_label);
       }
 
       /* clean up token */
@@ -267,7 +268,7 @@ ExpressionNode *parse_expression (void) {
 
     /* look for subsequent terms */
     while ((token = get_token_to_parse ())
-      && ! errors_get_code ()
+      && ! errors->get_code (errors)
       && (token->get_class (token) == TOKEN_PLUS
       || token->get_class (token) == TOKEN_MINUS)) {
 
@@ -288,9 +289,9 @@ ExpressionNode *parse_expression (void) {
       /* set an error condition if we read a sign but not a factor */
       else {
         rhterm_destroy (rhterm);
-        if (! errors_get_code ()) /* belt & braces */
-          errors_set_code (E_INVALID_EXPRESSION, token->get_line (token), 
-            last_label);
+        if (! errors->get_code (errors)) /* belt & braces */
+          errors->set_code (errors, E_INVALID_EXPRESSION,
+            token->get_line (token), last_label);
       }
 
       /* clean up token */
@@ -374,7 +375,7 @@ StatementNode *parse_let_statement (void) {
   /* see what variable we're assigning */
   token = get_token_to_parse ();
   if (token->get_class (token) != TOKEN_VARIABLE) {
-    errors_set_code (E_INVALID_VARIABLE, line, last_label);
+    errors->set_code (errors, E_INVALID_VARIABLE, line, last_label);
     statement_destroy (statement);
     token->destroy (token);
     return NULL;
@@ -385,7 +386,7 @@ StatementNode *parse_let_statement (void) {
   token->destroy (token);
   token = get_token_to_parse ();
   if (token->get_class (token) != TOKEN_EQUAL) {
-    errors_set_code (E_INVALID_ASSIGNMENT, line, last_label);
+    errors->set_code (errors, E_INVALID_ASSIGNMENT, line, last_label);
     statement_destroy (statement);
     token->destroy (token);
     return NULL;
@@ -395,7 +396,7 @@ StatementNode *parse_let_statement (void) {
   /* get the expression */
   statement->statement.letn->expression = parse_expression ();
   if (! statement->statement.letn->expression) {
-    errors_set_code (E_INVALID_EXPRESSION, line, last_label);
+    errors->set_code (errors, E_INVALID_EXPRESSION, line, last_label);
     statement_destroy (statement);
     return NULL;
   }
@@ -427,7 +428,7 @@ StatementNode *parse_if_statement (void) {
   statement->statement.ifn->left = parse_expression ();
 
   /* parse the operator */
-  if (! errors_get_code ()) {
+  if (! errors->get_code (errors)) {
     token = get_token_to_parse ();
     switch (token->get_class (token)) {
     case TOKEN_EQUAL:
@@ -449,30 +450,31 @@ StatementNode *parse_if_statement (void) {
       statement->statement.ifn->op = RELOP_GREATEROREQUAL;
       break;
     default:
-      errors_set_code (E_INVALID_OPERATOR, token->get_line (token),
+      errors->set_code (errors, E_INVALID_OPERATOR, token->get_line (token),
         last_label);
     }
     token->destroy (token);
   }
 
   /* parse the second expression */
-  if (! errors_get_code ())
+  if (! errors->get_code (errors))
     statement->statement.ifn->right = parse_expression ();
 
   /* parse the THEN */
-  if (! errors_get_code ()) {
+  if (! errors->get_code (errors)) {
     token = get_token_to_parse ();
     if (token->get_class (token) != TOKEN_THEN)
-      errors_set_code (E_THEN_EXPECTED, token->get_line (token), last_label);
+      errors->set_code (errors, E_THEN_EXPECTED, token->get_line (token), 
+        last_label);
     token->destroy (token);
   }
 
   /* parse the conditional statement */
-  if (! errors_get_code ())
+  if (! errors->get_code (errors))
     statement->statement.ifn->statement = parse_statement ();
 
   /* destroy the half-made statement if errors occurred */
-  if (errors_get_code ()) {
+  if (errors->get_code (errors)) {
     statement_destroy (statement);
     statement = NULL;
   }
@@ -590,7 +592,7 @@ StatementNode *parse_print_statement (void) {
     /* process a premature end of line */
     if (token->get_class (token) == TOKEN_EOF
       || token->get_class (token) == TOKEN_EOL) {
-      errors_set_code (E_INVALID_PRINT_OUTPUT, line, last_label);
+      errors->set_code (errors, E_INVALID_PRINT_OUTPUT, line, last_label);
       statement_destroy (statement);
       statement = NULL;
       token->destroy (token);
@@ -616,15 +618,15 @@ StatementNode *parse_print_statement (void) {
         nextoutput->output.expression = expression;
         nextoutput->next = NULL;
       } else {
-        errors_set_code (E_INVALID_PRINT_OUTPUT, token->get_line (token), 
-          last_label);
+        errors->set_code (errors, E_INVALID_PRINT_OUTPUT,
+          token->get_line (token), last_label);
         statement_destroy (statement);
         statement = NULL;
       }
     }
 
     /* add this output item to the statement and look for another */
-    if (! errors_get_code ()) {
+    if (! errors->get_code (errors)) {
       if (lastoutput)
         lastoutput->next = nextoutput;
       else
@@ -634,11 +636,11 @@ StatementNode *parse_print_statement (void) {
     }
 
   /* continue the loop until the statement appears to be finished */
-  } while (! errors_get_code ()
+  } while (! errors->get_code (errors)
     && token->get_class (token) == TOKEN_COMMA);
 
   /* push back the last token and return the assembled statement */
-  if (! errors_get_code ())
+  if (! errors->get_code (errors))
     stored_token = token;
   return statement;
 }
@@ -676,14 +678,14 @@ StatementNode *parse_input_statement (void) {
     /* process a premature end of line */
     if (token->get_class (token) == TOKEN_EOF
       || token->get_line (token) != line) {
-      errors_set_code (E_INVALID_VARIABLE, line, last_label);
+      errors->set_code (errors, E_INVALID_VARIABLE, line, last_label);
       statement_destroy (statement);
       statement = NULL;
     }
 
     /* attempt to process an variable name */
     else if (token->get_class (token) != TOKEN_VARIABLE) {
-      errors_set_code (E_INVALID_VARIABLE, token->get_line (token),
+      errors->set_code (errors, E_INVALID_VARIABLE, token->get_line (token),
 	last_label);
       statement_destroy (statement);
       statement = NULL;
@@ -695,7 +697,7 @@ StatementNode *parse_input_statement (void) {
     }
 
     /* add this variable to the statement and look for another */
-    if (! errors_get_code ()) {
+    if (! errors->get_code (errors)) {
       if (lastvar)
         lastvar->next = nextvar;
       else
@@ -703,7 +705,7 @@ StatementNode *parse_input_statement (void) {
       lastvar = nextvar;
       token = get_token_to_parse ();
     }
-  } while (! errors_get_code ()
+  } while (! errors->get_code (errors)
     && token->get_class (token) == TOKEN_COMMA);
 
   /* return the assembled statement */
@@ -772,7 +774,7 @@ StatementNode *parse_statement () {
       statement = parse_input_statement ();
       break;
     default:
-      errors_set_code (E_UNRECOGNISED_COMMAND, token->get_line (token),
+      errors->set_code (errors, E_UNRECOGNISED_COMMAND, token->get_line (token),
 	last_label);
       token->destroy (token);
   }
@@ -825,18 +827,20 @@ ProgramLineNode *parse_program_line (void) {
 
   /* validate the supplied or implied line label */
   if (! validate_line_label (program_line->label)) {
-    errors_set_code (E_INVALID_LINE_NUMBER, current_line, program_line->label);
+    errors->set_code (errors, E_INVALID_LINE_NUMBER, current_line,
+      program_line->label);
     program_line_destroy (program_line);
     return NULL;
   }
 
   /* check for a statement and an EOL */
   program_line->statement = parse_statement ();
-  if (! errors_get_code ()) {
+  if (! errors->get_code (errors)) {
     token = get_token_to_parse ();
     if (token->get_class (token) != TOKEN_EOL
       && token->get_class (token) != TOKEN_EOF)
-      errors_set_code (E_UNEXPECTED_PARAMETER, current_line, last_label);
+      errors->set_code (errors, E_UNEXPECTED_PARAMETER, current_line,
+        last_label);
     token->destroy (token);
   }
   if (label_encountered || program_line->statement)
@@ -859,7 +863,7 @@ ProgramLineNode *parse_program_line (void) {
  * returns:
  *   ProgramNode*    a pointer to the whole program
  */
-ProgramNode *parse_program (FILE *input) {
+ProgramNode *parse_program (FILE *input, ErrorHandler *parse_errors) {
 
   /* local varables */
   ProgramNode *program; /* the stored program */
@@ -869,12 +873,13 @@ ProgramNode *parse_program (FILE *input) {
 
   /* initialise the program */
   stream = new_TokenStream (input);
+  errors = parse_errors;
   program = malloc (sizeof (ProgramNode));
   program->first = NULL;
 
   /* read lines until reaching an error or end of input */
   while ((current = parse_program_line ())
-    && ! errors_get_code ()) {
+    && ! errors->get_code (errors)) {
     if (previous)
       previous->next = current;
     else

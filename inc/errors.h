@@ -36,54 +36,30 @@ typedef enum {
   E_LAST /* placeholder */
 } ErrorCode;
 
+/* error handler structure */
+typedef struct error_handler ErrorHandler;
+typedef struct error_handler {
+  void *data; /* private data */
+  void (*set_code) (ErrorHandler *, ErrorCode, int, int);
+  ErrorCode (*get_code) (ErrorHandler *);
+  int (*get_line) (ErrorHandler *);
+  int (*get_label) (ErrorHandler *);
+  char *(*get_text) (ErrorHandler *);
+  void (*destroy) (ErrorHandler *);
+} ErrorHandler;
+
 
 /*
- * Record an error encountered
- * globals:
- *   ErrorCode   error       the last error encountered
- * params:
- *   ErrorCode   new_error   the error code to set
+ * Constructors
  */
-void errors_set_code (ErrorCode new_error, int line, int label);
+
 
 /*
- * Return the last error encountered
- * globals:
- *   ErrorCode   error       the last error encountered
+ * Principal constructor
  * returns:
- *   ErrorCode               the last error encountered
- *   int         line        the source line on which the error occurred
- *   int         label       the erroneous line's label
+ *   ErrorHandler*   the new error handler object
  */
-ErrorCode errors_get_code (void);
+ErrorHandler *new_ErrorHandler (void);
 
-/*
- * Return the last error line encountered
- * globals:
- *   int   line   the source line of the last error
- * returns:
- *   int          the source line to return
- */
-ErrorCode errors_get_line (void);
-
-/*
- * Return the last error label encountered
- * globals:
- *   int   label   the line label of the last error
- * returns:
- *   int           the line label to return
- */
-ErrorCode errors_get_label (void);
-
-/*
- * Generate an error message
- * globals:
- *   ErrorCode   error   the code is used to look up the message
- *   int         line    the source line is added for token/parse errors
- *   int         label   the line's label is added for parse/runtime errors
- * returns:
- *   char*               the full error message to return
- */
-char *errors_text (void);
 
 #endif

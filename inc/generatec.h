@@ -30,10 +30,15 @@ typedef struct c_program {
 
 /*
  * Constructor
+ * params:
+ *   ErrorHandler*   compiler_errors   the error handler
+ * changes:
+ *   CProgram*       this              the object being created
+ *   Private*        data              the object's private data
  * returns:
- *   CProgram*   the C program object
+ *   CProgram*                         the created object
  */
-CProgram *new_CProgram (void);
+CProgram *new_CProgram (ErrorHandler *compiler_errors);
 
 
 #endif

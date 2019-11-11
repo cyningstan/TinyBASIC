@@ -19,9 +19,10 @@
 /*
  * Interpret the program from the beginning
  * params:
- *   ProgramNode*   program   the program to interpret
+ *   ProgramNode*    program          the program to interpret
+ *   ErrorHandler*   runtime_errors   runtime error handler
  */
-void interpret_program (ProgramNode *program);
+void interpret_program (ProgramNode *program, ErrorHandler *runtime_errors);
 
 
 #endif

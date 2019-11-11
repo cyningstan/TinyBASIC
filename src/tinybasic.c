@@ -28,6 +28,7 @@ static enum { /* action to take with parsed program */
   OUTPUT_C, /* output a C program */
   OUTPUT_EXE /* output an executable */
 } output = OUTPUT_INTERPRET;
+static ErrorHandler *errors; /* universal error handler */
 
 
 /*
@@ -48,7 +49,7 @@ void tinybasic_option_line_numbers (char *option) {
   else if (! strncmp ("mandatory", option, strlen (option)))
     options_set_line_numbers (LINE_NUMBERS_MANDATORY);
   else
-    errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
+    errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
 }
 
 /*
@@ -61,7 +62,7 @@ void tinybasic_option_line_limit (char *option) {
   if (sscanf (option, "%d", &limit))
     options_set_line_limit (limit);
   else
-    errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
+    errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
 }
 
 /*
@@ -75,7 +76,7 @@ void tinybasic_option_comments (char *option) {
   else if (! strncmp ("disabled", option, strlen (option)))
     options_set_comments (COMMENTS_DISABLED);
   else
-    errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
+    errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
 }
 
 /*
@@ -91,7 +92,7 @@ void tinybasic_option_output (char *option) {
   else if (! strcmp ("exe", option))
     output = OUTPUT_EXE;
   else
-    errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
+    errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
 }
 
 
@@ -112,7 +113,7 @@ void tinybasic_options (int argc, char **argv) {
   int argn; /* argument number count */
 
   /* loop through all parameters */
-  for (argn = 1; argn < argc && ! errors_get_code (); ++argn) {
+  for (argn = 1; argn < argc && ! errors->get_code (errors); ++argn) {
 
     /* scan for line number options */
     if (! strncmp (argv[argn], "-n", 2))
@@ -144,7 +145,7 @@ void tinybasic_options (int argc, char **argv) {
 
     /* raise an error upon illegal option */
     else
-      errors_set_code (E_BAD_COMMAND_LINE, 0, 0);
+      errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
   }
 }
 
@@ -169,7 +170,7 @@ void tinybasic_output_lst (ProgramNode *program) {
     /* write to the output file */
     program_line = program->first;
     while (program_line) {
-      if ((text = listing_line_output (program_line))) {
+      if ((text = listing_line_output (program_line, errors))) {
         fprintf (output, "%s", text);
         free (text);
       }
@@ -180,7 +181,7 @@ void tinybasic_output_lst (ProgramNode *program) {
 
   /* deal with errors */
   else
-    errors_set_code (E_FILE_NOT_FOUND, 0, 0);
+    errors->set_code (errors, E_FILE_NOT_FOUND, 0, 0);
 }
 
 /*
@@ -201,7 +202,7 @@ void tinybasic_output_c (ProgramNode *program) {
   if ((output = fopen (output_filename, "w"))) {
 
     /* write to the output file */
-    c_program = new_CProgram ();
+    c_program = new_CProgram (errors);
     if (c_program) {
       c_program->generate (c_program, program);
       if (c_program->c_output)
@@ -213,7 +214,7 @@ void tinybasic_output_c (ProgramNode *program) {
 
   /* deal with errors */
   else
-    errors_set_code (E_FILE_NOT_FOUND, 0, 0);
+    errors->set_code (errors, E_FILE_NOT_FOUND, 0, 0);
 
   /* clean up allocated memory */
   free (output_filename);
@@ -289,38 +290,42 @@ int main (int argc, char **argv) {
     *command; /* command for compilation */
 
   /* interpret the command line arguments */
+  errors = new_ErrorHandler ();
   tinybasic_options (argc, argv);
 
   /* give usage if filename not given */
   if (! input_filename) {
     printf ("Usage: %s [OPTIONS] INPUT-FILE\n", argv [0]);
+    errors->destroy (errors);
     return 0;
   }
 
   /* otherwise attempt to open the file */
   if (!(input = fopen (input_filename, "r"))) {
     printf ("Error: cannot open file %s\n", argv [1]);
+    errors->destroy (errors);
     return E_FILE_NOT_FOUND;
   }
 
   /* get the parse tree */
-  program = parse_program (input);
+  program = parse_program (input, errors);
   fclose (input);
 
   /* deal with errors */
-  if ((code = errors_get_code ())) {
-    error_text = errors_text ();
+  if ((code = errors->get_code (errors))) {
+    error_text = errors->get_text (errors);
     printf ("Parse error: %s\n", error_text);
     free (error_text);
+    errors->destroy (errors);
     return code;
   }
 
   /* perform the desired action */
   switch (output) {
     case OUTPUT_INTERPRET:
-      interpret_program (program);
-      if ((code = errors_get_code ())) {
-        error_text = errors_text ();
+      interpret_program (program, errors);
+      if ((code = errors->get_code (errors))) {
+        error_text = errors->get_text (errors);
         printf ("Runtime error: %s\n", error_text);
         free (error_text);
       }
@@ -342,6 +347,7 @@ int main (int argc, char **argv) {
 
   /* clean up and return success */
   program_destroy (program);
+  errors->destroy (errors);
   return 0;
 
 }
