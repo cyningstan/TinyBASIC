@@ -42,8 +42,8 @@ StatementNode *parse_statement (void);
 static int last_label = 0; /* last line label encountered */
 static int current_line = 0; /* the last source line parsed */
 static int end_of_file = 0; /* end of file signal */
-static FILE *input; /* the input file */
 static Token *stored_token = NULL; /* token read ahead */
+static TokenStream *stream; /* the input stream */
 
 
 /*
@@ -66,7 +66,7 @@ Token *get_token_to_parse () {
     token = stored_token;
     stored_token = NULL;
   } else
-    token = tokeniser_next_token (input);
+    token = stream->next (stream);
 
   /* store the line, check EOF and return the token */
   current_line = token->get_line (token);
@@ -369,7 +369,7 @@ StatementNode *parse_let_statement (void) {
   statement = statement_create ();
   statement->class = STATEMENT_LET;
   statement->statement.letn = statement_create_let ();
-  line = tokeniser_get_line ();
+  line = stream->get_line (stream);
 
   /* see what variable we're assigning */
   token = get_token_to_parse ();
@@ -577,7 +577,7 @@ StatementNode *parse_print_statement (void) {
   statement = statement_create ();
   statement->class = STATEMENT_PRINT;
   statement->statement.printn = statement_create_print ();
-  line = tokeniser_get_line ();
+  line = stream->get_line (stream);
 
   /* main loop for parsing the output list */
   do {
@@ -664,7 +664,7 @@ StatementNode *parse_input_statement (void) {
   statement = statement_create ();
   statement->class = STATEMENT_INPUT;
   statement->statement.inputn = statement_create_input ();
-  line = tokeniser_get_line ();
+  line = stream->get_line (stream);
 
   /* main loop for parsing the variable list */
   do {
@@ -796,7 +796,7 @@ StatementNode *parse_statement () {
  * returns:
  *   StatementNode           a fully-assembled statement, hopefully.
  */
-ProgramLineNode *parse_program_line (FILE *fh) {
+ProgramLineNode *parse_program_line (void) {
 
   /* local variables */
   Token *token; /* token read */
@@ -804,7 +804,6 @@ ProgramLineNode *parse_program_line (FILE *fh) {
   int label_encountered = 0; /* 1 if this line has an explicit label */
 
   /* initialise the program line and get the first token */
-  input = fh;
   program_line = program_line_create ();
   program_line->label = generate_default_label ();
   token = get_token_to_parse ();
@@ -869,11 +868,12 @@ ProgramNode *parse_program (FILE *input) {
     *current; /* the current line */
 
   /* initialise the program */
+  stream = new_TokenStream (input);
   program = malloc (sizeof (ProgramNode));
   program->first = NULL;
 
   /* read lines until reaching an error or end of input */
-  while ((current = parse_program_line (input))
+  while ((current = parse_program_line ())
     && ! errors_get_code ()) {
     if (previous)
       previous->next = current;
@@ -883,6 +883,7 @@ ProgramNode *parse_program (FILE *input) {
   }
 
   /* return the program */
+  stream->destroy (stream);
   return program;
 }
 
