@@ -45,6 +45,7 @@ static int end_of_file = 0; /* end of file signal */
 static Token *stored_token = NULL; /* token read ahead */
 static TokenStream *stream; /* the input stream */
 static ErrorHandler *errors; /* the parse error handler */
+static LanguageOptions *options; /* the language options */
 
 
 /*
@@ -319,7 +320,7 @@ ExpressionNode *parse_expression (void) {
  *   int                         numeric line label
  */
 int generate_default_label (void) {
-  if (options_get ().line_numbers == LINE_NUMBERS_IMPLIED)
+  if (options->get_line_numbers (options) == LINE_NUMBERS_IMPLIED)
     return last_label + 1;
   else
     return 0;
@@ -335,17 +336,17 @@ int generate_default_label (void) {
 int validate_line_label (int label) {
 
   /* line labels should be non-negative and within the set limit */
-  if (label < 0 || label > options_get ().line_limit)
+  if (label < 0 || label > options->get_line_limit (options))
     return 0;
 
   /* line labels should be non-zero unless they're optional */
   if (label == 0
-    && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
+    && options->get_line_numbers (options) != LINE_NUMBERS_OPTIONAL)
     return 0;
 
   /* line labels should be ascending unless they're optional */
   if (label <= last_label
-    && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
+    && options->get_line_numbers (options) != LINE_NUMBERS_OPTIONAL)
     return 0;
 
   /* if all the above tests passed, the line label is valid */
@@ -863,7 +864,8 @@ ProgramLineNode *parse_program_line (void) {
  * returns:
  *   ProgramNode*    a pointer to the whole program
  */
-ProgramNode *parse_program (FILE *input, ErrorHandler *parse_errors) {
+ProgramNode *parse_program (FILE *input, ErrorHandler *parse_errors,
+  LanguageOptions *parse_options) {
 
   /* local varables */
   ProgramNode *program; /* the stored program */
@@ -874,6 +876,7 @@ ProgramNode *parse_program (FILE *input, ErrorHandler *parse_errors) {
   /* initialise the program */
   stream = new_TokenStream (input);
   errors = parse_errors;
+  options = parse_options;
   program = malloc (sizeof (ProgramNode));
   program->first = NULL;
 

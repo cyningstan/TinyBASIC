@@ -30,10 +30,16 @@ typedef enum {
 } CommentOption;
 
 /* language options */
-typedef struct {
-  LineNumberOption line_numbers; /* mandatory, implied, optional */
-  int line_limit; /* highest line number allowed */
-  CommentOption comments; /* enabled, disabled */
+typedef struct language_options LanguageOptions;
+typedef struct language_options {
+  void *data; /* private data */
+  void (*set_line_numbers) (LanguageOptions *, LineNumberOption);
+  void (*set_line_limit) (LanguageOptions *, int);
+  void (*set_comments) (LanguageOptions *, CommentOption);
+  LineNumberOption (*get_line_numbers) (LanguageOptions *);
+  int (*get_line_limit) (LanguageOptions *);
+  CommentOption (*get_comments) (LanguageOptions *);
+  void (*destroy) (LanguageOptions *);
 } LanguageOptions;
 
 
@@ -43,49 +49,11 @@ typedef struct {
 
 
 /*
- * Set the language options as a group
- * globals:
- *   LanguageOptions   options       the master language options
- * params:
- *   LanguageOptions   new_options   the options to set
+ * Constructor for language options
+ * returns:
+ *   LanguageOptions*   the new language options object
  */
-void options_set (LanguageOptions new_options);
-
-/*
- * Get the language options as a group
- * globals:
- *   LanguageOptions   options       the master language options
- * params:
- *   LanguageOptions                 the options currently set
- */
-LanguageOptions options_get (void);
-
-/*
- * Set the line number option individually
- * globals:
- *   LanguageOptions    options        the options
- * params:
- *   LineNumberOption   line_numbers   line number option to set
- */
-void options_set_line_numbers (LineNumberOption line_numbers);
-
-/*
- * Set the line number limit individually
- * globals:
- *   LanguageOptions    options        the options
- * params:
- *   int                line_limit     line number limit to set
- */
-void options_set_line_limit (int line_limit);
-
-/*
- * Set the comments option individually
- * globals:
- *   LanguageOptions    options    the options
- * params:
- *   CommetOption       comments   comment option to set
- */
-void options_set_comments (CommentOption comments);
+LanguageOptions *new_LanguageOptions (void);
 
 
 #endif

@@ -40,6 +40,7 @@ static GosubStackNode *gosub_stack = NULL; /* the top of the GOSUB stack */
 static int variables[26]; /* the numeric variables */
 static int run_ended = 0; /* set to 1 when an END is encountered */
 static ErrorHandler *errors; /* the error handler */
+static LanguageOptions *options; /* the language options */
 
 
 /*
@@ -196,7 +197,7 @@ ProgramLineNode *interpret_label_search (int jump_label) {
     if (ptr->label == jump_label)
       found = ptr;
     else if (ptr->label >= jump_label
-      && options_get ().line_numbers != LINE_NUMBERS_OPTIONAL)
+      && options->get_line_numbers (options) != LINE_NUMBERS_OPTIONAL)
       found = ptr;
 
   /* check for errors and return what was found */
@@ -467,9 +468,11 @@ void interpret_program_from (ProgramLineNode *program_line) {
  *   ProgramNode*    program          the program to interpret
  *   ErrorHandler*   runtime_errors   runtime error handler
  */
-void interpret_program (ProgramNode *program, ErrorHandler *runtime_errors) {
+void interpret_program (ProgramNode *program, ErrorHandler *runtime_errors,
+  LanguageOptions *runtime_options) {
   stored_program = program;
   errors = runtime_errors;
+  options = runtime_options;
   interpret_initialise_variables ();
   interpret_program_from (program->first);
 }

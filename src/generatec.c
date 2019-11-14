@@ -37,12 +37,14 @@ typedef struct {
   CLabel *first_label; /* the start of a list of labels */
   char *code; /* the main block of generated code */
   ErrorHandler *errors; /* error handler for compilation */
+  LanguageOptions *options; /* the language options for compilation */
 } Private;
 
 /* convenience variables */
 static CProgram *this; /* the object being worked on */
 static Private *data; /* the private data of the object */
 static ErrorHandler *errors; /* the error handler */
+static LanguageOptions *options; /* the language options */
 
 
 /*
@@ -720,7 +722,7 @@ static void generate_bas_exec (void) {
   CLabel *label; /* label pointer for construction goto block */
 
   /* decide which operator to use for comparison */
-  op = (options_get ().line_numbers == LINE_NUMBERS_OPTIONAL)
+  op = (options->get_line_numbers (options) == LINE_NUMBERS_OPTIONAL)
     ? "=="
     : "<=";
 
@@ -860,7 +862,8 @@ static void destroy (CProgram *c_program) {
  * returns:
  *   CProgram*                         the created object
  */
-CProgram *new_CProgram (ErrorHandler *compiler_errors) {
+CProgram *new_CProgram (ErrorHandler *compiler_errors,
+  LanguageOptions *compiler_options) {
 
   /* allocate space */
   this = malloc (sizeof (CProgram));
@@ -872,6 +875,7 @@ CProgram *new_CProgram (ErrorHandler *compiler_errors) {
 
   /* initialise properties */
   errors = data->errors = compiler_errors;
+  options = data->options = compiler_options;
   data->input_used = 0;
   data->vars_used = 0;
   data->first_label = NULL;

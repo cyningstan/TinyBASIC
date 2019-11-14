@@ -11,6 +11,11 @@
 #define __INTERPRET_H__
 
 
+/* included headers */
+#include "errors.h"
+#include "options.h"
+
+
 /*
  * Function Declarations
  */
@@ -19,10 +24,12 @@
 /*
  * Interpret the program from the beginning
  * params:
- *   ProgramNode*    program          the program to interpret
- *   ErrorHandler*   runtime_errors   runtime error handler
+ *   ProgramNode*       program           the program to interpret
+ *   ErrorHandler*      runtime_errors    runtime error handler
+ *   LanguageOptions*   runtime_options   language options
  */
-void interpret_program (ProgramNode *program, ErrorHandler *runtime_errors);
+void interpret_program (ProgramNode *program, ErrorHandler *runtime_errors,
+  LanguageOptions *runtime_options);
 
 
 #endif

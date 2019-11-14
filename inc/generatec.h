@@ -11,6 +11,10 @@
 #define __GENERATEC_H__
 
 
+/* included headers */
+#include "errors.h"
+#include "options.h"
+
 /* forward references */
 typedef struct c_program CProgram;
 
@@ -31,14 +35,16 @@ typedef struct c_program {
 /*
  * Constructor
  * params:
- *   ErrorHandler*   compiler_errors   the error handler
+ *   ErrorHandler*      compiler_errors    the error handler
+ *   LanguageOptions*   compiler_options   language options
  * changes:
- *   CProgram*       this              the object being created
- *   Private*        data              the object's private data
+ *   CProgram*       this                  the object being created
+ *   Private*        data                  the object's private data
  * returns:
- *   CProgram*                         the created object
+ *   CProgram*                             the created object
  */
-CProgram *new_CProgram (ErrorHandler *compiler_errors);
+CProgram *new_CProgram (ErrorHandler *compiler_errors,
+  LanguageOptions *compiler_options);
 
 
 #endif

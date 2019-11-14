@@ -13,71 +13,149 @@
 #include <string.h>
 #include "options.h"
 
-/* global variables */
-static LanguageOptions options = { /* master language options */
-  LINE_NUMBERS_OPTIONAL,
-  32767,
-  COMMENTS_ENABLED
-};
-
 
 /*
- * Top Level Functions
+ * Data Definitions
  */
 
 
-/*
- * Set the language options as a group
- * globals:
- *   LanguageOptions   options       the master language options
- * params:
- *   LanguageOptions   new_options   the options to set
- */
-void options_set (LanguageOptions new_options) {
-  options = new_options;
-}
+/* private data */
+typedef struct {
+  LineNumberOption line_numbers; /* mandatory, implied, optional */
+  int line_limit; /* highest line number allowed */
+  CommentOption comments; /* enabled, disabled */
+} Private;
+
+/* convenience variables */
+LanguageOptions *this; /* object being worked on */
+Private *data; /* the object's private data */
+
 
 /*
- * Get the language options as a group
- * globals:
- *   LanguageOptions   options       the master language options
- * params:
- *   LanguageOptions                 the options currently set
+ * Public Methods
  */
-LanguageOptions options_get (void) {
-  return options;
-}
+
 
 /*
  * Set the line number option individually
- * globals:
- *   LanguageOptions    options        the options
  * params:
- *   LineNumberOption   line_numbers   line number option to set
+ *   LanguageOptions*    options        the options
+ *   LineNumberOption    line_numbers   line number option to set
  */
-void options_set_line_numbers (LineNumberOption line_numbers) {
-  options.line_numbers = line_numbers;
+static void set_line_numbers (LanguageOptions *options,
+  LineNumberOption line_numbers) {
+  this = options;
+  data = this->data;
+  data->line_numbers = line_numbers;
 }
 
 /*
  * Set the line number limit individually
- * globals:
- *   LanguageOptions    options        the options
  * params:
- *   int                line_limit     line number limit to set
+ *   LanguageOptions*    options        the options
+ *   int                 line_limit     line number limit to set
  */
-void options_set_line_limit (int line_limit) {
-  options.line_limit = line_limit;
+static void set_line_limit (LanguageOptions *options, int line_limit) {
+  this = options;
+  data = this->data;
+  data->line_limit = line_limit;
 }
 
 /*
  * Set the comments option individually
- * globals:
- *   LanguageOptions    options    the options
  * params:
- *   CommetOption       comments   comment option to set
+ *   LanguageOptions*    options        the options
+ *   CommetOption        comments   comment option to set
  */
-void options_set_comments (CommentOption comments) {
-  options.comments = comments;
+static void set_comments (LanguageOptions *options, CommentOption comments) {
+  this = options;
+  data = this->data;
+  data->comments = comments;
 }
 
+/*
+ * Return the line number setting
+ * params:
+ *   LanguageOptions*   options   the options
+ * returns:
+ *   LineNumberOption             the line number setting
+ */
+static LineNumberOption get_line_numbers (LanguageOptions *options) {
+  this = options;
+  data = this->data;
+  return data->line_numbers;
+}
+
+/*
+ * Return the line number limit
+ * params:
+ *   LanguageOptions*   options   the options
+ * returns:
+ *   int                          the line number setting
+ */
+static int get_line_limit (LanguageOptions *options) {
+  this = options;
+  data = this->data;
+  return data->line_limit;
+}
+
+/*
+ * Return the comments setting
+ * params:
+ *   LanguageOptions*   options   the options
+ * returns:
+ *   CommentOption                the line number setting
+ */
+static CommentOption get_comments (LanguageOptions *options) {
+  this = options;
+  data = this->data;
+  return data->comments;
+}
+
+/*
+ * Destroy the settings object
+ * params:
+ *   LanguageOptions*   options   the options
+ */
+static void destroy (LanguageOptions *options) {
+  if (options) {
+    if (options->data)
+      free (options->data);
+    free (options);
+  }
+}
+
+
+/*
+ * Constructors
+ */
+
+
+/*
+ * Constructor for language options
+ * returns:
+ *   LanguageOptions*   the new language options object
+ */
+LanguageOptions *new_LanguageOptions (void) {
+
+  /* allocate memory */
+  this = malloc (sizeof (LanguageOptions));
+  data = this->data = malloc (sizeof (Private));
+
+  /* initialise methods */
+  this->set_line_numbers = set_line_numbers;
+  this->set_line_limit = set_line_limit;
+  this->set_comments = set_comments;
+  this->get_line_numbers = get_line_numbers;
+  this->get_line_limit = get_line_limit;
+  this->get_comments = get_comments;
+  this->destroy = destroy;
+
+  /* initialise properties */
+  data->line_numbers = LINE_NUMBERS_OPTIONAL;
+  data->line_limit = 32767;
+  data->comments = COMMENTS_ENABLED;
+
+  /* return the new object */
+  return this;
+}

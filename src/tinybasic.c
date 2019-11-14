@@ -29,6 +29,7 @@ static enum { /* action to take with parsed program */
   OUTPUT_EXE /* output an executable */
 } output = OUTPUT_INTERPRET;
 static ErrorHandler *errors; /* universal error handler */
+static LanguageOptions *loptions; /* language options */
 
 
 /*
@@ -43,11 +44,11 @@ static ErrorHandler *errors; /* universal error handler */
  */
 void tinybasic_option_line_numbers (char *option) {
   if (! strncmp ("optional", option, strlen (option)))
-    options_set_line_numbers (LINE_NUMBERS_OPTIONAL);
+    loptions->set_line_numbers (loptions, LINE_NUMBERS_OPTIONAL);
   else if (! strncmp ("implied", option, strlen (option)))
-    options_set_line_numbers (LINE_NUMBERS_IMPLIED);
+    loptions->set_line_numbers (loptions, LINE_NUMBERS_IMPLIED);
   else if (! strncmp ("mandatory", option, strlen (option)))
-    options_set_line_numbers (LINE_NUMBERS_MANDATORY);
+    loptions->set_line_numbers (loptions, LINE_NUMBERS_MANDATORY);
   else
     errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
 }
@@ -60,7 +61,7 @@ void tinybasic_option_line_numbers (char *option) {
 void tinybasic_option_line_limit (char *option) {
   int limit; /* the limit contained in the option */
   if (sscanf (option, "%d", &limit))
-    options_set_line_limit (limit);
+    loptions->set_line_limit (loptions, limit);
   else
     errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
 }
@@ -72,9 +73,9 @@ void tinybasic_option_line_limit (char *option) {
  */
 void tinybasic_option_comments (char *option) {
   if (! strncmp ("enabled", option, strlen (option)))
-    options_set_comments (COMMENTS_ENABLED);
+    loptions->set_comments (loptions, COMMENTS_ENABLED);
   else if (! strncmp ("disabled", option, strlen (option)))
-    options_set_comments (COMMENTS_DISABLED);
+    loptions->set_comments (loptions, COMMENTS_DISABLED);
   else
     errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
 }
@@ -202,7 +203,7 @@ void tinybasic_output_c (ProgramNode *program) {
   if ((output = fopen (output_filename, "w"))) {
 
     /* write to the output file */
-    c_program = new_CProgram (errors);
+    c_program = new_CProgram (errors, loptions);
     if (c_program) {
       c_program->generate (c_program, program);
       if (c_program->c_output)
@@ -291,12 +292,14 @@ int main (int argc, char **argv) {
 
   /* interpret the command line arguments */
   errors = new_ErrorHandler ();
+  loptions = new_LanguageOptions ();
   tinybasic_options (argc, argv);
 
   /* give usage if filename not given */
   if (! input_filename) {
     printf ("Usage: %s [OPTIONS] INPUT-FILE\n", argv [0]);
     errors->destroy (errors);
+    loptions->destroy (loptions);
     return 0;
   }
 
@@ -304,11 +307,12 @@ int main (int argc, char **argv) {
   if (!(input = fopen (input_filename, "r"))) {
     printf ("Error: cannot open file %s\n", input_filename);
     errors->destroy (errors);
+    loptions->destroy (loptions);
     return E_FILE_NOT_FOUND;
   }
 
   /* get the parse tree */
-  program = parse_program (input, errors);
+  program = parse_program (input, errors, loptions);
   fclose (input);
 
   /* deal with errors */
@@ -316,6 +320,7 @@ int main (int argc, char **argv) {
     error_text = errors->get_text (errors);
     printf ("Parse error: %s\n", error_text);
     free (error_text);
+    loptions->destroy (loptions);
     errors->destroy (errors);
     return code;
   }
@@ -323,7 +328,7 @@ int main (int argc, char **argv) {
   /* perform the desired action */
   switch (output) {
     case OUTPUT_INTERPRET:
-      interpret_program (program, errors);
+      interpret_program (program, errors, loptions);
       if ((code = errors->get_code (errors))) {
         error_text = errors->get_text (errors);
         printf ("Runtime error: %s\n", error_text);
@@ -347,6 +352,7 @@ int main (int argc, char **argv) {
 
   /* clean up and return success */
   program_destroy (program);
+  loptions->destroy (loptions);
   errors->destroy (errors);
   return 0;
 
