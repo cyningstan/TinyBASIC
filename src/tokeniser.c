@@ -58,8 +58,8 @@ typedef struct {
 
 
 /* convenience variables */
-TokenStream *this; /* token stream passed in to public method */
-Private *data; /* private data for this */
+static TokenStream *this; /* token stream passed in to public method */
+static Private *data; /* private data for this */
 
 
 /*
@@ -560,7 +560,7 @@ static int get_line (TokenStream *token_stream) {
  * params:
  *   TokenStream*   token_stream   the doomed token stream
  */
-void destroy (TokenStream *token_stream) {
+static void destroy (TokenStream *token_stream) {
   if (token_stream) {
     if (token_stream->data)
       free (token_stream->data);

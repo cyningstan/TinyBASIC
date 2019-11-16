@@ -76,7 +76,7 @@ static char *output_factor (FactorNode *factor) {
       }
       break;
     default:
-      errors->set_code (errors, E_INVALID_EXPRESSION, parser_line (), parser_label ());
+      errors->set_code (errors, E_INVALID_EXPRESSION, 0, 0);
   }
 
   /* apply a negative sign, if necessary */
@@ -121,8 +121,7 @@ static char *output_term (TermNode *term) {
         operator_char = '/';
         break;
       default:
-        errors->set_code (errors, E_INVALID_EXPRESSION, parser_line (),
-	  parser_label ());
+        errors->set_code (errors, E_INVALID_EXPRESSION, 0, 0);
         free (term_text);
         term_text = NULL;
       }
@@ -176,8 +175,7 @@ static char *output_expression (ExpressionNode *expression) {
         operator_char = '-';
         break;
       default:
-        errors->set_code (errors, E_INVALID_EXPRESSION, parser_line (),
-	  parser_label ());
+        errors->set_code (errors, E_INVALID_EXPRESSION, 0, 0);
         free (expression_text);
         expression_text = NULL;
       }

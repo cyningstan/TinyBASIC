@@ -27,10 +27,10 @@
 
 
 /* parse_expression() has a forward reference from parse_factor() */
-ExpressionNode *parse_expression (void);
+static ExpressionNode *parse_expression (void);
 
 /* parse_statement() has a forward reference from parse_if_statement() */
-StatementNode *parse_statement (void);
+static StatementNode *parse_statement (void);
 
 
 /*
@@ -38,14 +38,19 @@ StatementNode *parse_statement (void);
  */
 
 
-/* global variables */
-static int last_label = 0; /* last line label encountered */
-static int current_line = 0; /* the last source line parsed */
-static int end_of_file = 0; /* end of file signal */
-static Token *stored_token = NULL; /* token read ahead */
-static TokenStream *stream; /* the input stream */
-static ErrorHandler *errors; /* the parse error handler */
-static LanguageOptions *options; /* the language options */
+/* private data */
+typedef struct parser_data {
+  int last_label; /* last line label encountered */
+  int current_line; /* the last source line parsed */
+  int end_of_file; /* end of file signal */
+  Token *stored_token; /* token read ahead */
+  TokenStream *stream; /* the input stream */
+  ErrorHandler *errors; /* the parse error handler */
+  LanguageOptions *options; /* the language options */
+} ParserData;
+
+/* convenience variables */
+static Parser *this; /* the current parser being worked on */
 
 
 /*
@@ -58,22 +63,22 @@ static LanguageOptions *options; /* the language options */
  * globals:
  *   Token   *stored_token   a token already read in.
  */
-Token *get_token_to_parse () {
+static Token *get_token_to_parse () {
 
   /* local variables */
   Token *token; /* token to return */
 
   /* get the token one way or another */
-  if (stored_token) {
-    token = stored_token;
-    stored_token = NULL;
+  if (this->priv->stored_token) {
+    token = this->priv->stored_token;
+    this->priv->stored_token = NULL;
   } else
-    token = stream->next (stream);
+    token = this->priv->stream->next (this->priv->stream);
 
   /* store the line, check EOF and return the token */
-  current_line = token->get_line (token);
+  this->priv->current_line = token->get_line (token);
   if (token->get_class (token) == TOKEN_EOF)
-    end_of_file = !0;
+    this->priv->end_of_file = !0;
   return token;
 }
 
@@ -88,7 +93,7 @@ Token *get_token_to_parse () {
  * returns:
  *   FactorNode*   a new factor node holding the parsed data
  */
-FactorNode *parse_factor (void) {
+static FactorNode *parse_factor (void) {
 
   /* local variables */
   Token *token; /* token to read */
@@ -116,7 +121,8 @@ FactorNode *parse_factor (void) {
     factor->class = FACTOR_VALUE;
     factor->data.value = atoi (token->get_content (token));
     if (factor->data.value < -32768 || factor->data.value > 32767)
-      errors->set_code (errors, E_OVERFLOW, start_line, last_label);
+      this->priv->errors->set_code
+        (this->priv->errors, E_OVERFLOW, start_line, this->priv->last_label);
     token->destroy (token);
   }
 
@@ -139,8 +145,9 @@ FactorNode *parse_factor (void) {
         factor->class = FACTOR_EXPRESSION;
         factor->data.expression = expression;
       } else {
-        errors->set_code (errors, E_MISSING_RIGHT_PARENTHESIS, start_line, 
-          last_label);
+        this->priv->errors->set_code
+          (this->priv->errors, E_MISSING_RIGHT_PARENTHESIS, start_line,
+            this->priv->last_label);
         factor_destroy (factor);
         factor = NULL;
         expression_destroy (expression);
@@ -150,8 +157,8 @@ FactorNode *parse_factor (void) {
 
     /* clean up after invalid parenthesised expression */
     else {
-      errors->set_code (errors, E_INVALID_EXPRESSION, token->get_line (token),
-	last_label);
+      this->priv->errors->set_code (this->priv->errors, E_INVALID_EXPRESSION,
+        token->get_line (token), this->priv->last_label);
       token->destroy (token);
       factor_destroy (factor);
       factor = NULL;
@@ -160,8 +167,9 @@ FactorNode *parse_factor (void) {
 
   /* deal with other errors */
   else {
-    errors->set_code (errors, E_INVALID_EXPRESSION, token->get_line (token),
-      last_label);
+    this->priv->errors->set_code
+      (this->priv->errors, E_INVALID_EXPRESSION, token->get_line (token),
+        this->priv->last_label);
     factor_destroy (factor);
     token->destroy (token);
     factor = NULL;
@@ -184,7 +192,7 @@ FactorNode *parse_factor (void) {
  * returns:
  *   TermNode*   a new term node holding the parsed term
  */
-TermNode *parse_term (void) {
+static TermNode *parse_term (void) {
 
   /* local variables */
   TermNode *term = NULL; /* the term we're building */
@@ -202,7 +210,7 @@ TermNode *parse_term (void) {
 
     /* look for subsequent factors */
     while ((token = get_token_to_parse ())
-      && ! errors->get_code (errors)
+      && ! this->priv->errors->get_code (this->priv->errors)
       && (token->get_class (token) == TOKEN_MULTIPLY
       || token->get_class (token) == TOKEN_DIVIDE)) {
 
@@ -223,9 +231,10 @@ TermNode *parse_term (void) {
       /* set an error if we read an operator but not a factor */
       else {
         rhfactor_destroy (rhfactor);
-        if (! errors->get_code (errors)) /* belt & braces */
-          errors->set_code (errors, E_INVALID_EXPRESSION,
-            token->get_line (token), last_label);
+        if (! this->priv->errors->get_code (this->priv->errors))
+          this->priv->errors->set_code
+            (this->priv->errors, E_INVALID_EXPRESSION, token->get_line (token),
+              this->priv->last_label);
       }
 
       /* clean up token */
@@ -233,7 +242,7 @@ TermNode *parse_term (void) {
     }
 
     /* we've read past the end of the term; put the token back */
-    stored_token = token;
+    this->priv->stored_token = token;
   }
 
   /* return the evaluated term, if any */
@@ -251,7 +260,7 @@ TermNode *parse_term (void) {
  * returns:
  *   ExpressionNode*    the parsed expression
  */
-ExpressionNode *parse_expression (void) {
+static ExpressionNode *parse_expression (void) {
 
   /* local variables */
   ExpressionNode *expression = NULL; /* the expression we build */
@@ -269,7 +278,7 @@ ExpressionNode *parse_expression (void) {
 
     /* look for subsequent terms */
     while ((token = get_token_to_parse ())
-      && ! errors->get_code (errors)
+      && ! this->priv->errors->get_code (this->priv->errors)
       && (token->get_class (token) == TOKEN_PLUS
       || token->get_class (token) == TOKEN_MINUS)) {
 
@@ -290,9 +299,10 @@ ExpressionNode *parse_expression (void) {
       /* set an error condition if we read a sign but not a factor */
       else {
         rhterm_destroy (rhterm);
-        if (! errors->get_code (errors)) /* belt & braces */
-          errors->set_code (errors, E_INVALID_EXPRESSION,
-            token->get_line (token), last_label);
+        if (! this->priv->errors->get_code (this->priv->errors))
+          this->priv->errors->set_code
+            (this->priv->errors, E_INVALID_EXPRESSION, token->get_line (token),
+              this->priv->last_label);
       }
 
       /* clean up token */
@@ -300,7 +310,7 @@ ExpressionNode *parse_expression (void) {
     }
 
     /* we've read past the end of the term; put the token back */
-    stored_token = token;
+    this->priv->stored_token = token;
   }
 
   /* return the evaluated expression, if any */
@@ -319,9 +329,10 @@ ExpressionNode *parse_expression (void) {
  * returns:
  *   int                         numeric line label
  */
-int generate_default_label (void) {
-  if (options->get_line_numbers (options) == LINE_NUMBERS_IMPLIED)
-    return last_label + 1;
+static int generate_default_label (void) {
+  if (this->priv->options->get_line_numbers (this->priv->options)
+    == LINE_NUMBERS_IMPLIED)
+    return this->priv->last_label + 1;
   else
     return 0;
 }
@@ -333,20 +344,23 @@ int generate_default_label (void) {
  * returns:
  *   int                         !0 if the number is valid, 0 if invalid
  */
-int validate_line_label (int label) {
+static int validate_line_label (int label) {
 
   /* line labels should be non-negative and within the set limit */
-  if (label < 0 || label > options->get_line_limit (options))
+  if (label < 0
+    || label > this->priv->options->get_line_limit (this->priv->options))
     return 0;
 
   /* line labels should be non-zero unless they're optional */
   if (label == 0
-    && options->get_line_numbers (options) != LINE_NUMBERS_OPTIONAL)
+    && this->priv->options->get_line_numbers (this->priv->options)
+      != LINE_NUMBERS_OPTIONAL)
     return 0;
 
   /* line labels should be ascending unless they're optional */
-  if (label <= last_label
-    && options->get_line_numbers (options) != LINE_NUMBERS_OPTIONAL)
+  if (label <= this->priv->last_label
+    && this->priv->options->get_line_numbers (this->priv->options)
+      != LINE_NUMBERS_OPTIONAL)
     return 0;
 
   /* if all the above tests passed, the line label is valid */
@@ -360,7 +374,7 @@ int validate_line_label (int label) {
  * returns:
  *   StatementNode*          The statement assembled
  */
-StatementNode *parse_let_statement (void) {
+static StatementNode *parse_let_statement (void) {
 
   /* local variables */
   Token *token; /* tokens read as part of LET statement */
@@ -371,12 +385,13 @@ StatementNode *parse_let_statement (void) {
   statement = statement_create ();
   statement->class = STATEMENT_LET;
   statement->statement.letn = statement_create_let ();
-  line = stream->get_line (stream);
+  line = this->priv->stream->get_line (this->priv->stream);
 
   /* see what variable we're assigning */
   token = get_token_to_parse ();
   if (token->get_class (token) != TOKEN_VARIABLE) {
-    errors->set_code (errors, E_INVALID_VARIABLE, line, last_label);
+    this->priv->errors->set_code
+      (this->priv->errors, E_INVALID_VARIABLE, line, this->priv->last_label);
     statement_destroy (statement);
     token->destroy (token);
     return NULL;
@@ -387,7 +402,8 @@ StatementNode *parse_let_statement (void) {
   token->destroy (token);
   token = get_token_to_parse ();
   if (token->get_class (token) != TOKEN_EQUAL) {
-    errors->set_code (errors, E_INVALID_ASSIGNMENT, line, last_label);
+    this->priv->errors->set_code
+      (this->priv->errors, E_INVALID_ASSIGNMENT, line, this->priv->last_label);
     statement_destroy (statement);
     token->destroy (token);
     return NULL;
@@ -397,7 +413,8 @@ StatementNode *parse_let_statement (void) {
   /* get the expression */
   statement->statement.letn->expression = parse_expression ();
   if (! statement->statement.letn->expression) {
-    errors->set_code (errors, E_INVALID_EXPRESSION, line, last_label);
+    this->priv->errors->set_code
+      (this->priv->errors, E_INVALID_EXPRESSION, line, this->priv->last_label);
     statement_destroy (statement);
     return NULL;
   }
@@ -414,7 +431,7 @@ StatementNode *parse_let_statement (void) {
  * returns:
  *   StatementNode*          The statement to assemble.
  */
-StatementNode *parse_if_statement (void) {
+static StatementNode *parse_if_statement (void) {
 
   /* local variables */
   Token *token; /* tokens read as part of the statement */
@@ -429,7 +446,7 @@ StatementNode *parse_if_statement (void) {
   statement->statement.ifn->left = parse_expression ();
 
   /* parse the operator */
-  if (! errors->get_code (errors)) {
+  if (! this->priv->errors->get_code (this->priv->errors)) {
     token = get_token_to_parse ();
     switch (token->get_class (token)) {
     case TOKEN_EQUAL:
@@ -451,31 +468,33 @@ StatementNode *parse_if_statement (void) {
       statement->statement.ifn->op = RELOP_GREATEROREQUAL;
       break;
     default:
-      errors->set_code (errors, E_INVALID_OPERATOR, token->get_line (token),
-        last_label);
+      this->priv->errors->set_code
+        (this->priv->errors, E_INVALID_OPERATOR, token->get_line (token),
+        this->priv->last_label);
     }
     token->destroy (token);
   }
 
   /* parse the second expression */
-  if (! errors->get_code (errors))
+  if (! this->priv->errors->get_code (this->priv->errors))
     statement->statement.ifn->right = parse_expression ();
 
   /* parse the THEN */
-  if (! errors->get_code (errors)) {
+  if (! this->priv->errors->get_code (this->priv->errors)) {
     token = get_token_to_parse ();
     if (token->get_class (token) != TOKEN_THEN)
-      errors->set_code (errors, E_THEN_EXPECTED, token->get_line (token), 
-        last_label);
+      this->priv->errors->set_code
+        (this->priv->errors, E_THEN_EXPECTED, token->get_line (token), 
+        this->priv->last_label);
     token->destroy (token);
   }
 
   /* parse the conditional statement */
-  if (! errors->get_code (errors))
+  if (! this->priv->errors->get_code (this->priv->errors))
     statement->statement.ifn->statement = parse_statement ();
 
   /* destroy the half-made statement if errors occurred */
-  if (errors->get_code (errors)) {
+  if (this->priv->errors->get_code (this->priv->errors)) {
     statement_destroy (statement);
     statement = NULL;
   }
@@ -489,7 +508,7 @@ StatementNode *parse_if_statement (void) {
  * returns:
  *   StatementNode*   the parsed GOTO statement
  */
-StatementNode *parse_goto_statement (void) {
+static StatementNode *parse_goto_statement (void) {
 
   /* local variables */
   StatementNode *statement; /* the IF statement */
@@ -514,7 +533,7 @@ StatementNode *parse_goto_statement (void) {
  * returns:
  *   StatementNode*   the parsed GOSUB statement
  */
-StatementNode *parse_gosub_statement (void) {
+static StatementNode *parse_gosub_statement (void) {
 
   /* local variables */
   StatementNode *statement; /* the IF statement */
@@ -539,7 +558,7 @@ StatementNode *parse_gosub_statement (void) {
  * returns:
  *   StatementNode*          The statement assembled
  */
-StatementNode *parse_return_statement (void) {
+static StatementNode *parse_return_statement (void) {
   StatementNode *statement; /* the RETURN */
   statement = statement_create ();
   statement->class = STATEMENT_RETURN;
@@ -551,7 +570,7 @@ StatementNode *parse_return_statement (void) {
  * returns:
  *   StatementNode*          The statement assembled
  */
-StatementNode *parse_end_statement (void) {
+static StatementNode *parse_end_statement (void) {
   StatementNode *statement = NULL; /* the END */
   statement = statement_create ();
   statement->class = STATEMENT_END;
@@ -565,7 +584,7 @@ StatementNode *parse_end_statement (void) {
  * returns:
  *   StatementNode*          The statement assembled
  */
-StatementNode *parse_print_statement (void) {
+static StatementNode *parse_print_statement (void) {
 
   /* local variables */
   Token *token = NULL; /* tokens read as part of the statement */
@@ -580,7 +599,7 @@ StatementNode *parse_print_statement (void) {
   statement = statement_create ();
   statement->class = STATEMENT_PRINT;
   statement->statement.printn = statement_create_print ();
-  line = stream->get_line (stream);
+  line = this->priv->stream->get_line (this->priv->stream);
 
   /* main loop for parsing the output list */
   do {
@@ -593,7 +612,9 @@ StatementNode *parse_print_statement (void) {
     /* process a premature end of line */
     if (token->get_class (token) == TOKEN_EOF
       || token->get_class (token) == TOKEN_EOL) {
-      errors->set_code (errors, E_INVALID_PRINT_OUTPUT, line, last_label);
+      this->priv->errors->set_code
+        (this->priv->errors, E_INVALID_PRINT_OUTPUT, line,
+        this->priv->last_label);
       statement_destroy (statement);
       statement = NULL;
       token->destroy (token);
@@ -612,22 +633,23 @@ StatementNode *parse_print_statement (void) {
 
     /* attempt to process an expression */
     else {
-      stored_token = token;
+      this->priv->stored_token = token;
       if ((expression = parse_expression ())) {
         nextoutput = malloc (sizeof (OutputNode));
         nextoutput->class = OUTPUT_EXPRESSION;
         nextoutput->output.expression = expression;
         nextoutput->next = NULL;
       } else {
-        errors->set_code (errors, E_INVALID_PRINT_OUTPUT,
-          token->get_line (token), last_label);
+        this->priv->errors->set_code
+          (this->priv->errors, E_INVALID_PRINT_OUTPUT, token->get_line (token),
+             this->priv->last_label);
         statement_destroy (statement);
         statement = NULL;
       }
     }
 
     /* add this output item to the statement and look for another */
-    if (! errors->get_code (errors)) {
+    if (! this->priv->errors->get_code (this->priv->errors)) {
       if (lastoutput)
         lastoutput->next = nextoutput;
       else
@@ -637,12 +659,12 @@ StatementNode *parse_print_statement (void) {
     }
 
   /* continue the loop until the statement appears to be finished */
-  } while (! errors->get_code (errors)
+  } while (! this->priv->errors->get_code (this->priv->errors)
     && token->get_class (token) == TOKEN_COMMA);
 
   /* push back the last token and return the assembled statement */
-  if (! errors->get_code (errors))
-    stored_token = token;
+  if (! this->priv->errors->get_code (this->priv->errors))
+    this->priv->stored_token = token;
   return statement;
 }
 
@@ -653,7 +675,7 @@ StatementNode *parse_print_statement (void) {
  * returns:
  *   StatementNode*          The statement assembled
  */
-StatementNode *parse_input_statement (void) {
+static StatementNode *parse_input_statement (void) {
 
   /* local variables */
   Token *token = NULL; /* tokens read as part of the statement */
@@ -667,7 +689,7 @@ StatementNode *parse_input_statement (void) {
   statement = statement_create ();
   statement->class = STATEMENT_INPUT;
   statement->statement.inputn = statement_create_input ();
-  line = stream->get_line (stream);
+  line = this->priv->stream->get_line (this->priv->stream);
 
   /* main loop for parsing the variable list */
   do {
@@ -679,15 +701,17 @@ StatementNode *parse_input_statement (void) {
     /* process a premature end of line */
     if (token->get_class (token) == TOKEN_EOF
       || token->get_line (token) != line) {
-      errors->set_code (errors, E_INVALID_VARIABLE, line, last_label);
+      this->priv->errors->set_code
+        (this->priv->errors, E_INVALID_VARIABLE, line, this->priv->last_label);
       statement_destroy (statement);
       statement = NULL;
     }
 
     /* attempt to process an variable name */
     else if (token->get_class (token) != TOKEN_VARIABLE) {
-      errors->set_code (errors, E_INVALID_VARIABLE, token->get_line (token),
-	last_label);
+      this->priv->errors->set_code
+        (this->priv->errors, E_INVALID_VARIABLE, token->get_line (token),
+	this->priv->last_label);
       statement_destroy (statement);
       statement = NULL;
     } else {
@@ -698,7 +722,7 @@ StatementNode *parse_input_statement (void) {
     }
 
     /* add this variable to the statement and look for another */
-    if (! errors->get_code (errors)) {
+    if (! this->priv->errors->get_code (this->priv->errors)) {
       if (lastvar)
         lastvar->next = nextvar;
       else
@@ -706,11 +730,11 @@ StatementNode *parse_input_statement (void) {
       lastvar = nextvar;
       token = get_token_to_parse ();
     }
-  } while (! errors->get_code (errors)
+  } while (! this->priv->errors->get_code (this->priv->errors)
     && token->get_class (token) == TOKEN_COMMA);
 
   /* return the assembled statement */
-  stored_token = token;
+  this->priv->stored_token = token;
   return statement;
 }
 
@@ -727,7 +751,7 @@ StatementNode *parse_input_statement (void) {
  * returns:
  *   StatementNode                     a fully-assembled statement, hopefully.
  */
-StatementNode *parse_statement () {
+static StatementNode *parse_statement () {
 
   /* local variables */
   Token *token; /* token read */
@@ -739,7 +763,7 @@ StatementNode *parse_statement () {
   /* check for command */
   switch (token->get_class (token)) {
     case TOKEN_EOL:
-      stored_token = token;
+      this->priv->stored_token = token;
       statement = NULL;
       break;
     case TOKEN_LET:
@@ -775,8 +799,9 @@ StatementNode *parse_statement () {
       statement = parse_input_statement ();
       break;
     default:
-      errors->set_code (errors, E_UNRECOGNISED_COMMAND, token->get_line (token),
-	last_label);
+      this->priv->errors->set_code
+        (this->priv->errors, E_UNRECOGNISED_COMMAND, token->get_line (token),
+	this->priv->last_label);
       token->destroy (token);
   }
 
@@ -799,7 +824,7 @@ StatementNode *parse_statement () {
  * returns:
  *   StatementNode           a fully-assembled statement, hopefully.
  */
-ProgramLineNode *parse_program_line (void) {
+static ProgramLineNode *parse_program_line (void) {
 
   /* local variables */
   Token *token; /* token read */
@@ -824,11 +849,12 @@ ProgramLineNode *parse_program_line (void) {
     label_encountered = 1;
     token->destroy (token);
   } else
-    stored_token = token;
+    this->priv->stored_token = token;
 
   /* validate the supplied or implied line label */
   if (! validate_line_label (program_line->label)) {
-    errors->set_code (errors, E_INVALID_LINE_NUMBER, current_line,
+    this->priv->errors->set_code
+      (this->priv->errors, E_INVALID_LINE_NUMBER, this->priv->current_line,
       program_line->label);
     program_line_destroy (program_line);
     return NULL;
@@ -836,16 +862,17 @@ ProgramLineNode *parse_program_line (void) {
 
   /* check for a statement and an EOL */
   program_line->statement = parse_statement ();
-  if (! errors->get_code (errors)) {
+  if (! this->priv->errors->get_code (this->priv->errors)) {
     token = get_token_to_parse ();
     if (token->get_class (token) != TOKEN_EOL
       && token->get_class (token) != TOKEN_EOF)
-      errors->set_code (errors, E_UNEXPECTED_PARAMETER, current_line,
-        last_label);
+      this->priv->errors->set_code
+        (this->priv->errors, E_UNEXPECTED_PARAMETER, this->priv->current_line,
+        this->priv->last_label);
     token->destroy (token);
   }
   if (label_encountered || program_line->statement)
-    last_label = program_line->label;
+    this->priv->last_label = program_line->label;
 
   /* return the program line */
   return program_line;
@@ -860,12 +887,11 @@ ProgramLineNode *parse_program_line (void) {
 /*
  * Parse the whole program
  * params:
- *   FILE*   input   the input file
+ *   Parser*   parser   The parser to use
  * returns:
- *   ProgramNode*    a pointer to the whole program
+ *   ProgramNode*       The parsed program
  */
-ProgramNode *parse_program (FILE *input, ErrorHandler *parse_errors,
-  LanguageOptions *parse_options) {
+static ProgramNode *parse (Parser *parser) {
 
   /* local varables */
   ProgramNode *program; /* the stored program */
@@ -874,15 +900,13 @@ ProgramNode *parse_program (FILE *input, ErrorHandler *parse_errors,
     *current; /* the current line */
 
   /* initialise the program */
-  stream = new_TokenStream (input);
-  errors = parse_errors;
-  options = parse_options;
+  this = parser;
   program = malloc (sizeof (ProgramNode));
   program->first = NULL;
 
   /* read lines until reaching an error or end of input */
   while ((current = parse_program_line ())
-    && ! errors->get_code (errors)) {
+    && ! this->priv->errors->get_code (this->priv->errors)) {
     if (previous)
       previous->next = current;
     else
@@ -891,28 +915,78 @@ ProgramNode *parse_program (FILE *input, ErrorHandler *parse_errors,
   }
 
   /* return the program */
-  stream->destroy (stream);
   return program;
 }
 
 /*
  * Return the current source line we're parsing
- * globals:
- *   int   current_line   the line stored when the last token was read
+ * params:
+ *   Parser*   The parser to use
  * returns:
- *   int                  the line returned
+ *   int       the line returned
  */
-int parser_line (void) {
-  return current_line;
+static int get_line (Parser *parser) {
+  return parser->priv->current_line;
 }
 
 /*
  * Return the label of the source line we're parsing
- * globals:
- *   int   last_label   the label stored when validated
+ * params:
+ *   Parser*   parser   The parser to use
  * returns:
  *   int                the label returned
  */
-int parser_label (void) {
-  return last_label;
+static int get_label (Parser *parser) {
+  return parser->priv->last_label;
+}
+
+/*
+ * Destroy this parser object
+ * params:
+ *   Parser*   parser   the doomed parser
+ */
+void destroy (Parser *parser) {
+  if (parser) {
+    if (parser->priv) {
+      if (parser->priv->stream)
+        parser->priv->stream->destroy (parser->priv->stream);
+    }
+    free (parser->priv);
+  }
+  free (parser);
+}
+
+/*
+ * Constructor
+ * params:
+ *   ErrorHandler*      errors    the error handler to use
+ *   LanguageOptions*   options   the language options to use
+ *   FILE*              input     the input file
+ * returns:
+ *   Parser*                      the new parser
+ */
+Parser *new_Parser (ErrorHandler *errors, LanguageOptions *options,
+  FILE *input) {
+
+  /* allocate memory */
+  this = malloc (sizeof (Parser));
+  this->priv = malloc (sizeof (ParserData));
+  this->priv->stream = new_TokenStream (input);
+
+  /* initialise methods */
+  this->parse = parse;
+  this->get_line = get_line;
+  this->get_label = get_label;
+  this->destroy = destroy;
+
+  /* initialise properties */
+  this->priv->last_label = 0;
+  this->priv->current_line = 0;
+  this->priv->end_of_file = 0;
+  this->priv->stored_token = NULL;
+  this->priv->errors = errors;
+  this->priv->options = options;
+
+  /* return the new object */
+  return this;
 }

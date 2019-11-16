@@ -15,37 +15,79 @@
 #include "statement.h"
 #include "errors.h"
 #include "options.h"
+#include "tokeniser.h"
 
 
 /*
- * Parse the whole program
+ * Data Declarations
+ */
+
+
+/* the parser */
+typedef struct parser_data ParserData;
+typedef struct parser Parser;
+typedef struct parser {
+
+  /* Properties */
+  ParserData *priv; /* parser's private data */
+
+  /*
+   * Public methods
+   */
+
+  /*
+   * Parse the whole program
+   * params:
+   *   Parser*        The parser to use
+   *   INPUT*         The input file to parse
+   * returns:
+   *   ProgramNode*   The parsed program
+   */
+  ProgramNode *(*parse) (Parser *);
+
+  /*
+   * Return the current source line we're parsing
+   * params:
+   *   Parser*   The parser to use
+   * returns:
+   *   int       the line returned
+   */
+  int (*get_line) (Parser *);
+
+  /*
+   * Return the label of the source line we're parsing
+   * params:
+   *   Parser*   The parser to use
+    * returns:
+   *   int       the label returned
+   */
+  int (*get_label) (Parser *);
+
+  /*
+   * Destroy this parser object
+   * params:
+   *   Parser*   the doomed parser
+   */
+  void (*destroy) (Parser *);
+
+} Parser;
+
+
+/*
+ * Function Definitions
+ */
+
+
+/*
+ * Constructor
  * params:
- *   FILE*              input           the input file
- *   ErrorHandler*      parse_errors    parser error handler
- *   LanguageOptions*   parse_options   language options
+ *   ErrorHandler*      the error handler to use
+ *   LanguageOptions*   the language options to use
+ *   FILE*              the input file
  * returns:
- *   ProgramNode*                       a pointer to the whole program
+ *   Parser*            the new parser
  */
-ProgramNode *parse_program (FILE *input, ErrorHandler *parse_errors,
-  LanguageOptions *parse_options);
-
-/*
- * Return the current source line we're parsing
- * globals:
- *   int   current_line   the line stored when the last token was read
- * returns:
- *   int                  the line returned
- */
-int parser_line (void);
-
-/*
- * Return the label of the source line we're parsing
- * globals:
- *   int   last_label   the label stored when validated
- * returns:
- *   int                the label returned
- */
-int parser_label (void);
+Parser *new_Parser (ErrorHandler *, LanguageOptions *, FILE *);
 
 
 #endif

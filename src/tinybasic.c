@@ -286,6 +286,7 @@ int main (int argc, char **argv) {
   FILE *input; /* input file */
   ProgramNode *program; /* the parsed program */
   ErrorCode code; /* error returned */
+  Parser *parser; /* parser object */
   char
     *error_text, /* error text message */
     *command; /* command for compilation */
@@ -312,7 +313,9 @@ int main (int argc, char **argv) {
   }
 
   /* get the parse tree */
-  program = parse_program (input, errors, loptions);
+  parser = new_Parser (errors, loptions, input);
+  program = parser->parse (parser);
+  parser->destroy (parser);
   fclose (input);
 
   /* deal with errors */
