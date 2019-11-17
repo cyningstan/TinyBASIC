@@ -287,6 +287,7 @@ int main (int argc, char **argv) {
   ProgramNode *program; /* the parsed program */
   ErrorCode code; /* error returned */
   Parser *parser; /* parser object */
+  Interpreter *interpreter; /* interpreter object */
   char
     *error_text, /* error text message */
     *command; /* command for compilation */
@@ -331,7 +332,9 @@ int main (int argc, char **argv) {
   /* perform the desired action */
   switch (output) {
     case OUTPUT_INTERPRET:
-      interpret_program (program, errors, loptions);
+      interpreter = new_Interpreter (errors, loptions);
+      interpreter->interpret (interpreter, program);
+      interpreter->destroy (interpreter);
       if ((code = errors->get_code (errors))) {
         error_text = errors->get_text (errors);
         printf ("Runtime error: %s\n", error_text);

@@ -54,14 +54,12 @@ static Parser *this; /* the current parser being worked on */
 
 
 /*
- * Level 7 Parser Routines
+ * Private methods
  */
 
 
 /*
  * Get next token to parse, from read-ahead buffer or tokeniser.
- * globals:
- *   Token   *stored_token   a token already read in.
  */
 static Token *get_token_to_parse () {
 
@@ -81,12 +79,6 @@ static Token *get_token_to_parse () {
     this->priv->end_of_file = !0;
   return token;
 }
-
-
-/*
- * Level 6 Parser Routines
- */
-
 
 /*
  * Parse a factor
@@ -179,12 +171,6 @@ static FactorNode *parse_factor (void) {
   return factor;
 }
 
-
-/*
- * Level 5 Parser Routines
- */
-
-
 /*
  * Parse a term
  * globals:
@@ -249,12 +235,6 @@ static TermNode *parse_term (void) {
   return term;
 }
 
-
-/*
- * Level 4 Parser Routines
- */
-
-
 /*
  * Parse an expression
  * returns:
@@ -317,12 +297,6 @@ static ExpressionNode *parse_expression (void) {
   return expression;
 }
 
-
-/*
- * Level 3 Parser Routines
- */
-
-
 /*
  * Calculate numeric line label according to language options.
  * This will be used if the line has no label specified.
@@ -369,8 +343,6 @@ static int validate_line_label (int label) {
 
 /*
  * Parse a LET statement
- * globals:
- *   Token*   stored_token   The token after the whole statement
  * returns:
  *   StatementNode*          The statement assembled
  */
@@ -423,11 +395,8 @@ static StatementNode *parse_let_statement (void) {
   return statement;
 }
 
-
 /*
  * Parse an IF statement
- * globals:
- *   Token*   stored_token   The token after the whole statement
  * returns:
  *   StatementNode*          The statement to assemble.
  */
@@ -579,8 +548,6 @@ static StatementNode *parse_end_statement (void) {
 
 /*
  * Parse a PRINT statement
- * globals:
- *   Token*   stored_token   The token after the whole statement
  * returns:
  *   StatementNode*          The statement assembled
  */
@@ -670,8 +637,6 @@ static StatementNode *parse_print_statement (void) {
 
 /*
  * Parse an INPUT statement
- * globals:
- *   Token*   stored_token   The token after the whole statement
  * returns:
  *   StatementNode*          The statement assembled
  */
@@ -738,18 +703,10 @@ static StatementNode *parse_input_statement (void) {
   return statement;
 }
 
-
-/*
- * Level 2 Parser Routines
- */
-
-
 /*
  * Parse a statement from the source file
- * globals:
- *   Token             *stored_token   a token already pre-read.
  * returns:
- *   StatementNode                     a fully-assembled statement, hopefully.
+ *   StatementNode*   a fully-assembled statement, hopefully.
  */
 static StatementNode *parse_statement () {
 
@@ -809,18 +766,8 @@ static StatementNode *parse_statement () {
   return statement;
 }
 
-
-/*
- * Level 1 Parser Routines
- */
-
-
 /*
  * Parse a line from the source file.
- * globals:
- *   Token   *stored_token   a token already pre-read.
- *   int     last_label      last line label used.
- *   int     current_line    the source line we're parsing
  * returns:
  *   StatementNode           a fully-assembled statement, hopefully.
  */
@@ -880,7 +827,7 @@ static ProgramLineNode *parse_program_line (void) {
 
 
 /*
- * Top Level Parser Routines
+ * Public Methods
  */
 
 
@@ -955,6 +902,12 @@ void destroy (Parser *parser) {
   }
   free (parser);
 }
+
+
+/*
+ * Constructors
+ */
+
 
 /*
  * Constructor

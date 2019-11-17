@@ -74,7 +74,7 @@ typedef struct parser {
 
 
 /*
- * Function Definitions
+ * Function Declarations
  */
 
 

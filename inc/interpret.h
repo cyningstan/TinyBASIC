@@ -14,6 +14,38 @@
 /* included headers */
 #include "errors.h"
 #include "options.h"
+#include "statement.h"
+
+
+/*
+ * Data Declarations
+ */
+
+
+/* the interpreter object */
+typedef struct interpreter_data InterpreterData;
+typedef struct interpreter Interpreter;
+typedef struct interpreter {
+
+  /* Properties */
+  InterpreterData *priv; /* private data */
+
+  /*
+   * Interpret the program
+   * params:
+   *   Interpreter*   the interpreter to use
+   *   ProgramNode*   the program to interpret
+   */
+  void (*interpret) (Interpreter *, ProgramNode *);
+
+  /*
+   * Destructor
+   * params:
+   *   Interpreter*   the doomed interpreter
+   */
+  void (*destroy) (Interpreter *);
+
+} Interpreter;
 
 
 /*
@@ -22,14 +54,11 @@
 
 
 /*
- * Interpret the program from the beginning
- * params:
- *   ProgramNode*       program           the program to interpret
- *   ErrorHandler*      runtime_errors    runtime error handler
- *   LanguageOptions*   runtime_options   language options
+ * Constructor
+ * returns:
+ *   Interpreter*   the new interpreter
  */
-void interpret_program (ProgramNode *program, ErrorHandler *runtime_errors,
-  LanguageOptions *runtime_options);
+Interpreter *new_Interpreter (ErrorHandler *errors, LanguageOptions *options);
 
 
 #endif

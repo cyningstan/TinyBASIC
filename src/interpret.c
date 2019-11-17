@@ -11,14 +11,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "interpret.h"
 #include "errors.h"
 #include "options.h"
 #include "statement.h"
 
 
 /* forward declarations */
-int interpret_expression (ExpressionNode *expression);
-void interpret_statement (StatementNode *statement);
+static int interpret_expression (ExpressionNode *expression);
+static void interpret_statement (StatementNode *statement);
 
 
 /*
@@ -32,19 +33,23 @@ typedef struct gosub_stack_node {
   GosubStackNode *next; /* stack node for the previous GOSUB */
 } GosubStackNode;
 
+/* private data */
+typedef struct interpreter_data {
+  ProgramNode *program; /* the program to interpret */
+  ProgramLineNode *line; /* current line we're executing */
+  GosubStackNode *gosub_stack; /* the top of the GOSUB stack */
+  int variables [26]; /* the numeric variables */
+  int stopped; /* set to 1 when an END is encountered */
+  ErrorHandler *errors; /* the error handler */
+  LanguageOptions *options; /* the language options */
+} InterpreterData;
 
-/* global variables */
-static ProgramNode *stored_program; /* a global copy of the program */
-static ProgramLineNode *current_line; /* current line we're executing */
-static GosubStackNode *gosub_stack = NULL; /* the top of the GOSUB stack */
-static int variables[26]; /* the numeric variables */
-static int run_ended = 0; /* set to 1 when an END is encountered */
-static ErrorHandler *errors; /* the error handler */
-static LanguageOptions *options; /* the language options */
+/* convenience variables */
+static Interpreter *this; /* the object we are working with */
 
 
 /*
- * Level 4 Routines
+ * Private Methods
  */
 
 
@@ -53,7 +58,7 @@ static LanguageOptions *options; /* the language options */
  * params:
  *   FactorNode*   factor   the factor to evaluate
  */
-int interpret_factor (FactorNode *factor) {
+static int interpret_factor (FactorNode *factor) {
 
   /* local variables */
   int result_store = 0; /* result of factor evaluation */
@@ -63,14 +68,14 @@ int interpret_factor (FactorNode *factor) {
 
     /* a regular variable */
     case FACTOR_VARIABLE:
-      result_store = variables[factor->data.variable - 1]
+      result_store = this->priv->variables [factor->data.variable - 1]
         * (factor->sign == SIGN_POSITIVE ? 1 : -1);
       break;
 
     /* an integer constant */
     case FACTOR_VALUE:
-      result_store = factor->data.value * (factor->sign == SIGN_POSITIVE
-	? 1 : -1);
+      result_store = factor->data.value
+        * (factor->sign == SIGN_POSITIVE ? 1 : -1);
       break;
 
     /* an expression */
@@ -81,27 +86,23 @@ int interpret_factor (FactorNode *factor) {
 
     /* this only happens if the parser has failed in its duty */
     default:
-      errors->set_code (errors, E_INVALID_EXPRESSION, 0, current_line->label);
+      this->priv->errors->set_code
+        (this->priv->errors, E_INVALID_EXPRESSION, 0, this->priv->line->label);
   }
 
   /* check the result and return it*/
   if (result_store < -32768 || result_store > 32767)
-    errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
+    this->priv->errors->set_code
+      (this->priv->errors, E_OVERFLOW, 0, this->priv->line->label);
   return result_store;
 }
-
-
-/*
- * Level 3 Routines
- */
-
 
 /*
  * Evaluate a term for the interpreter
  * params:
  *   TermNode*   term   the term to evaluate
  */
-int interpret_term (TermNode *term) {
+static int interpret_term (TermNode *term) {
 
   /* local variables */
   int result_store; /* the partial evaluation */
@@ -113,18 +114,20 @@ int interpret_term (TermNode *term) {
   rhfactor = term->next;
 
   /* adjust store according to successive rh factors */
-  while (rhfactor && ! errors->get_code (errors)) {
+  while (rhfactor && ! this->priv->errors->get_code (this->priv->errors)) {
     switch (rhfactor->op) {
       case TERM_OPERATOR_MULTIPLY:
         result_store *= interpret_factor (rhfactor->factor);
 	if (result_store < -32768 || result_store > 32767)
-	  errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
+	  this->priv->errors->set_code
+            (this->priv->errors, E_OVERFLOW, 0, this->priv->line->label);
         break;
       case TERM_OPERATOR_DIVIDE:
         if ((divisor = interpret_factor (rhfactor->factor)))
           result_store /= divisor;
         else
-          errors->set_code (errors, E_DIVIDE_BY_ZERO, 0, current_line->label);
+          this->priv->errors->set_code
+            (this->priv->errors, E_DIVIDE_BY_ZERO, 0, this->priv->line->label);
         break;
       default:
         break;
@@ -136,18 +139,12 @@ int interpret_term (TermNode *term) {
   return result_store;
 }
 
-
-/*
- * Level 2 Routines
- */
-
-
 /*
  * Evaluate an expression for the interpreter
  * params:
  *   ExpressionNode*   expression   the expression to evaluate
  */
-int interpret_expression (ExpressionNode *expression) {
+static int interpret_expression (ExpressionNode *expression) {
 
   /* local variables */
   int result_store; /* the partial evaluation */
@@ -158,17 +155,19 @@ int interpret_expression (ExpressionNode *expression) {
   rhterm = expression->next;
 
   /* adjust store according to successive rh terms */
-  while (rhterm && ! errors->get_code (errors)) {
+  while (rhterm && ! this->priv->errors->get_code (this->priv->errors)) {
     switch (rhterm->op) {
       case EXPRESSION_OPERATOR_PLUS:
         result_store += interpret_term (rhterm->term);
 	if (result_store < -32768 || result_store > 32767)
-	  errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
+	  this->priv->errors->set_code
+            (this->priv->errors, E_OVERFLOW, 0, this->priv->line->label);
         break;
       case EXPRESSION_OPERATOR_MINUS:
         result_store -= interpret_term (rhterm->term);
 	if (result_store < -32768 || result_store > 32767)
-	  errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
+	  this->priv->errors->set_code
+            (this->priv->errors, E_OVERFLOW, 0, this->priv->line->label);
         break;
       default:
         break;
@@ -185,7 +184,7 @@ int interpret_expression (ExpressionNode *expression) {
  * returns:
  *   ProgramLineNode*   the program line found
  */
-ProgramLineNode *interpret_label_search (int jump_label) {
+static ProgramLineNode *find_label (int jump_label) {
 
   /* local variables */
   ProgramLineNode
@@ -193,16 +192,18 @@ ProgramLineNode *interpret_label_search (int jump_label) {
     *found = NULL; /* the line if found */
 
   /* do the search */
-  for (ptr = stored_program->first; ptr && ! found; ptr = ptr->next)
+  for (ptr = this->priv->program->first; ptr && ! found; ptr = ptr->next)
     if (ptr->label == jump_label)
       found = ptr;
     else if (ptr->label >= jump_label
-      && options->get_line_numbers (options) != LINE_NUMBERS_OPTIONAL)
+      && this->priv->options->get_line_numbers (this->priv->options)
+        != LINE_NUMBERS_OPTIONAL)
       found = ptr;
 
   /* check for errors and return what was found */
   if (! found)
-    errors->set_code (errors, E_INVALID_LINE_NUMBER, 0, current_line->label);
+    this->priv->errors->set_code
+      (this->priv->errors, E_INVALID_LINE_NUMBER, 0, this->priv->line->label);
   return found;
 }
 
@@ -213,14 +214,12 @@ ProgramLineNode *interpret_label_search (int jump_label) {
 
 
 /*
- * Initialise the Variables
- * globals:
- *   int[]   variables   the program's variables
+ * Initialise the variables
  */
-void interpret_initialise_variables (void) {
-  int count; /* counter for variables */
+static void initialise_variables (void) {
+  int count; /* counter for this->priv->variables */
   for (count = 0; count < 26; ++count) {
-    variables[count] = 0;
+    this->priv->variables [count] = 0;
   }
 }
 
@@ -230,8 +229,9 @@ void interpret_initialise_variables (void) {
  *   LetStatementNode*   letn   the LET statement details
  */
 void interpret_let_statement (LetStatementNode *letn) {
-  variables[letn->variable - 1] = interpret_expression (letn->expression);
-  current_line = current_line->next;
+  this->priv->variables [letn->variable - 1]
+    = interpret_expression (letn->expression);
+  this->priv->line = this->priv->line->next;
 }
 
 /*
@@ -262,10 +262,10 @@ void interpret_if_statement (IfStatementNode *ifn) {
   }
 
   /* perform the conditional statement */
-  if (comparison && ! errors->get_code (errors))
+  if (comparison && ! this->priv->errors->get_code (this->priv->errors))
     interpret_statement (ifn->statement);
   else
-    current_line = current_line->next;
+    this->priv->line = this->priv->line->next;
 }
 
 /*
@@ -276,8 +276,8 @@ void interpret_if_statement (IfStatementNode *ifn) {
 void interpret_goto_statement (GotoStatementNode *goton) {
   int label; /* the line label to go to */
   label = interpret_expression (goton->label);
-  if (! errors->get_code (errors))
-    current_line = interpret_label_search (label);
+  if (! this->priv->errors->get_code (this->priv->errors))
+    this->priv->line = find_label (label);
 }
 
 /*
@@ -293,14 +293,14 @@ void interpret_gosub_statement (GosubStatementNode *gosubn) {
 
   /* create the new node on the GOSUB stack */
   gosub_node = malloc (sizeof (GosubStackNode));
-  gosub_node->program_line = current_line->next;
-  gosub_node->next = gosub_stack;
-  gosub_stack = gosub_node;
+  gosub_node->program_line = this->priv->line->next;
+  gosub_node->next = this->priv->gosub_stack;
+  this->priv->gosub_stack = gosub_node;
 
   /* branch to the subroutine requested */
   label = interpret_expression (gosubn->label);
-  if (! errors->get_code (errors))
-    current_line = interpret_label_search (label);
+  if (! this->priv->errors->get_code (this->priv->errors))
+    this->priv->line = find_label (label);
 }
 
 /*
@@ -312,16 +312,17 @@ void interpret_return_statement (void) {
   GosubStackNode *gosub_node; /* node popped off the GOSUB stack */
 
   /* return to the statement following the most recent GOSUB */
-  if (gosub_stack) {
-    current_line = gosub_stack->program_line;
-    gosub_node = gosub_stack;
-    gosub_stack = gosub_stack->next;
+  if (this->priv->gosub_stack) {
+    this->priv->line = this->priv->gosub_stack->program_line;
+    gosub_node = this->priv->gosub_stack;
+    this->priv->gosub_stack = this->priv->gosub_stack->next;
     free (gosub_node);
   }
 
   /* no GOSUBs led here, so raise an error */
   else
-    errors->set_code (errors, E_RETURN_WITHOUT_GOSUB, 0, current_line->label);
+    this->priv->errors->set_code
+      (this->priv->errors, E_RETURN_WITHOUT_GOSUB, 0, this->priv->line->label);
 }
 
 /*
@@ -347,7 +348,7 @@ void interpret_print_statement (PrintStatementNode *printn) {
         break;
       case OUTPUT_EXPRESSION:
         result = interpret_expression (outn->output.expression);
-        if (! errors->get_code (errors)) {
+        if (! this->priv->errors->get_code (this->priv->errors)) {
           printf ("%d", result);
           ++items;
         }
@@ -359,7 +360,7 @@ void interpret_print_statement (PrintStatementNode *printn) {
   /* print the linefeed */
   if (items)
     printf ("\n");
-  current_line = current_line->next;
+  this->priv->line = this->priv->line->next;
 }
 
 /*
@@ -387,15 +388,17 @@ void interpret_input_statement (InputStatementNode *inputn) {
     do {
       value = 10 * value + (ch - '0');
       if (value * sign < -32768 || value * sign > 32767)
-	errors->set_code (errors, E_OVERFLOW, 0, current_line->label);
+	this->priv->errors->set_code
+          (this->priv->errors, E_OVERFLOW, 0, this->priv->line->label);
       ch = getchar ();
-    } while (ch >= '0' && ch <= '9' && ! errors->get_code (errors));
-    variables[variable->variable - 1] = sign * value;
+    } while (ch >= '0' && ch <= '9'
+      && ! this->priv->errors->get_code (this->priv->errors));
+    this->priv->variables [variable->variable - 1] = sign * value;
     variable = variable->next;
   }
 
   /* advance to the next statement when done */
-  current_line = current_line->next;
+  this->priv->line = this->priv->line->next;
 }
 
 
@@ -408,7 +411,7 @@ void interpret_statement (StatementNode *statement) {
 
   /* skip comments */
   if (! statement) {
-    current_line = current_line->next;
+    this->priv->line = this->priv->line->next;
     return;
   }
 
@@ -432,7 +435,7 @@ void interpret_statement (StatementNode *statement) {
       interpret_return_statement ();
       break;
     case STATEMENT_END:
-       run_ended = 1;
+       this->priv->stopped = 1;
      break;
     case STATEMENT_PRINT:
       interpret_print_statement (statement->statement.printn);
@@ -450,29 +453,73 @@ void interpret_statement (StatementNode *statement) {
  * params:
  *   ProgramLineNode*   program_line   the starting line
  */
-void interpret_program_from (ProgramLineNode *program_line) {
-  current_line = program_line;
-  while (current_line && ! run_ended && ! errors->get_code (errors))
-    interpret_statement (current_line->statement);
+static void interpret_program_from (ProgramLineNode *program_line) {
+  this->priv->line = program_line;
+  while (this->priv->line
+    && ! this->priv->stopped
+    && ! this->priv->errors->get_code (this->priv->errors))
+    interpret_statement (this->priv->line->statement);
 }
 
 
 /*
- * Top Level Routines
+ * Public Methods
  */
 
 
 /*
  * Interpret the program from the beginning
  * params:
- *   ProgramNode*    program          the program to interpret
- *   ErrorHandler*   runtime_errors   runtime error handler
+ *   Interpreter*   interpreter   the interpreter to use
+ *   ProgramNode*   program       the program to interpret
  */
-void interpret_program (ProgramNode *program, ErrorHandler *runtime_errors,
-  LanguageOptions *runtime_options) {
-  stored_program = program;
-  errors = runtime_errors;
-  options = runtime_options;
-  interpret_initialise_variables ();
-  interpret_program_from (program->first);
+static void interpret (Interpreter *interpreter, ProgramNode *program) {
+  this = interpreter;
+  this->priv->program = program;
+  initialise_variables ();
+  interpret_program_from (this->priv->program->first);
+}
+
+/*
+ * Destroy the interpreter
+ * params:
+ *   Interpreter*   interpreter   the doomed interpreter
+ */
+static void destroy (Interpreter *interpreter) {
+  if (interpreter) {
+    if (interpreter->priv)
+      free (interpreter->priv);
+    free (interpreter);
+  }
+}
+
+
+/*
+ * Constructors
+ */
+
+
+/*
+ * Constructor
+ * returns:
+ *   Interpreter*   the new interpreter
+ */
+Interpreter *new_Interpreter (ErrorHandler *errors, LanguageOptions *options) {
+
+  /* allocate memory */
+  this = malloc (sizeof (Interpreter));
+  this->priv = malloc (sizeof (InterpreterData));
+
+  /* initialise methods */
+  this->interpret = interpret;
+  this->destroy = destroy;
+
+  /* initialise properties */
+  this->priv->gosub_stack = NULL;
+  this->priv->stopped = 0;
+  this->priv->errors = errors;
+  this->priv->options = this->priv->options;
+
+  /* return the new object */
+  return this;
 }
