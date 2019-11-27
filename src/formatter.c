@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "statement.h"
+#include "formatter.h"
 #include "expression.h"
 #include "errors.h"
 #include "parser.h"
@@ -23,9 +23,13 @@
  */
 
 
-/* convenience variables */
-static ErrorHandler *errors; /* the error handler */
+/* private formatter data */
+typedef struct formatter_data {
+  ErrorHandler *errors; /* the error handler */
+} FormatterData;
 
+/* convenience variables */
+static Formatter *this; /* the object being worked on */
 
 /*
  * Forward References
@@ -76,7 +80,8 @@ static char *output_factor (FactorNode *factor) {
       }
       break;
     default:
-      errors->set_code (errors, E_INVALID_EXPRESSION, 0, 0);
+      this->priv->errors->set_code
+	(this->priv->errors, E_INVALID_EXPRESSION, 0, 0);
   }
 
   /* apply a negative sign, if necessary */
@@ -110,7 +115,7 @@ static char *output_term (TermNode *term) {
   /* begin with the initial factor */
   if ((term_text = output_factor (term->factor))) {
     rhfactor = term->next;
-    while (! errors->get_code (errors) && rhfactor) {
+    while (! this->priv->errors->get_code (this->priv->errors) && rhfactor) {
 
       /* ascertain the operator text */
       switch (rhfactor->op) {
@@ -121,13 +126,14 @@ static char *output_term (TermNode *term) {
         operator_char = '/';
         break;
       default:
-        errors->set_code (errors, E_INVALID_EXPRESSION, 0, 0);
+        this->priv->errors->set_code
+	  (this->priv->errors, E_INVALID_EXPRESSION, 0, 0);
         free (term_text);
         term_text = NULL;
       }
 
       /* get the factor that follows the operator */
-      if (! errors->get_code (errors)
+      if (! this->priv->errors->get_code (this->priv->errors)
         && (factor_text = output_factor (rhfactor->factor))) {
         term_text = realloc (term_text,
           strlen (term_text) + strlen (factor_text) + 2);
@@ -164,7 +170,7 @@ static char *output_expression (ExpressionNode *expression) {
   /* begin with the initial term */
   if ((expression_text = output_term (expression->term))) {
     rhterm = expression->next;
-    while (! errors->get_code (errors) && rhterm) {
+    while (! this->priv->errors->get_code (this->priv->errors) && rhterm) {
 
       /* ascertain the operator text */
       switch (rhterm->op) {
@@ -175,13 +181,14 @@ static char *output_expression (ExpressionNode *expression) {
         operator_char = '-';
         break;
       default:
-        errors->set_code (errors, E_INVALID_EXPRESSION, 0, 0);
+        this->priv->errors->set_code
+	  (this->priv->errors, E_INVALID_EXPRESSION, 0, 0);
         free (expression_text);
         expression_text = NULL;
       }
 
       /* get the terms that follow the operators */
-      if (! errors->get_code (errors)
+      if (! this->priv->errors->get_code (this->priv->errors)
         && (term_text = output_term (rhterm->term))) {
         expression_text = realloc (expression_text,
           strlen (expression_text) + strlen (term_text) + 2);
@@ -345,10 +352,10 @@ static char *output_gosub (GosubStatementNode *gosubn) {
  *   char*   A new string with the text "END"
  */
 static char *output_end (void) {
-    char *end_text; /* the full text of the END command */
-    end_text = malloc (4);
-    strcpy (end_text, "END");
-    return end_text;
+  char *end_text; /* the full text of the END command */
+  end_text = malloc (4);
+  strcpy (end_text, "END");
+  return end_text;
 }
 
 
@@ -358,10 +365,10 @@ static char *output_end (void) {
  *   char*   A new string with the text "RETURN"
  */
 static char *output_return (void) {
-    char *return_text; /* the full text of the RETURN command */
-    return_text = malloc (7);
-    strcpy (return_text, "RETURN");
-    return return_text;
+  char *return_text; /* the full text of the RETURN command */
+  return_text = malloc (7);
+  strcpy (return_text, "RETURN");
+  return return_text;
 }
 
 
@@ -506,21 +513,14 @@ static char *output_statement (StatementNode *statement) {
  * Program Line Output
  * params:
  *   ProgramLineNode*   program_line     the line to output
- *   ErrorHandler*      listing_errors   error handler for listing
- * returns:
- *   char*                               the reconstructed line
  */
-char *listing_line_output (ProgramLineNode *program_line,
-  ErrorHandler *listing_errors) {
+static void generate_line (ProgramLineNode *program_line) {
 
   /* local variables */
   char
     label_text [7], /* line label text */
     *output = NULL, /* the rest of the output */
-    *line = NULL; /* the assembled line */
-
-  /* initialise convenience variables */
-  errors = listing_errors;
+    *line_text = NULL; /* the assembled line */
 
   /* initialise the line label */
   if (program_line->label)
@@ -531,20 +531,89 @@ char *listing_line_output (ProgramLineNode *program_line,
   /* build the statement itself */
   output = output_statement (program_line->statement);
 
-  /* if this wasn't a comment, combine the two */
+  /* if this wasn't a comment, add it to the program */
   if (output) {
-    line = malloc (strlen (label_text) + strlen (output) + 2);
-    sprintf (line, "%s%s\n", label_text, output);
+    line_text = malloc (strlen (label_text) + strlen (output) + 2);
+    sprintf (line_text, "%s%s\n", label_text, output);
     free (output);
+    this->output = realloc (this->output,
+      strlen (this->output) + strlen (line_text) + 1);
+    strcat (this->output, line_text);
+    free (line_text);
   }
-
-  /* if this was a comment, remove the line altogether */
-  else {
-    free (line);
-    line = NULL;
-  }
-
-  /* return the listing line */
-  return line;
 }
 
+
+/*
+ * Public Methods
+ */
+
+
+/*
+ * Create a formatted version of the program
+ * params:
+ *   Formatter*     fomatter   the formatter
+ *   ProgramNode*   program    the syntax tree
+ */
+static void generate (Formatter *formatter, ProgramNode *program) {
+
+  /* local variables */
+  ProgramLineNode *program_line; /* line to process */
+
+  /* initialise this object */
+  this = formatter;
+
+  /* generate the code for the lines */
+  program_line = program->first;
+  while (program_line) {
+    generate_line (program_line);
+    program_line = program_line->next;
+  }
+}
+
+/*
+ * Destroy the formatter when no longer needed
+ * params:
+ *   Formatter*   formatter   the doomed formatter
+ */
+static void destroy (Formatter *formatter) {
+  if (formatter) {
+    if (formatter->output)
+      free (formatter->output);
+    if (formatter->priv)
+      free (formatter->priv);
+    free (formatter);
+  }
+}
+
+
+/*
+ * Constructors
+ */
+
+
+/*
+ * The Formatter constructor
+ * params:
+ *   ErrorHandler   *errors   the error handler object
+ * returns:
+ *   Formatter*               the new formatter
+ */
+Formatter *new_Formatter (ErrorHandler *errors) {
+
+  /* allocate memory */
+  this = malloc (sizeof (Formatter));
+  this->priv = malloc (sizeof (FormatterData));
+
+  /* initialise methods */
+  this->generate = generate;
+  this->destroy = destroy;
+
+  /* initialise properties */
+  this->output = malloc (sizeof (char));
+  *this->output = '\0';
+  this->priv->errors = errors;
+
+  /* return the new object */
+  return this;
+}

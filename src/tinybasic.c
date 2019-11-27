@@ -16,9 +16,8 @@
 #include "parser.h"
 #include "statement.h"
 #include "interpret.h"
-#include "listing.h"
+#include "formatter.h"
 #include "generatec.h"
-
 
 /* static variables */
 static char *input_filename = NULL; /* name of the input file */
@@ -160,8 +159,7 @@ void tinybasic_output_lst (ProgramNode *program) {
   /* local variables */
   FILE *output; /* the output file */
   char *output_filename; /* the output filename */
-  ProgramLineNode *program_line; /* a statement we're listing */
-  char *text; /* the text of a statement we're listing */
+  Formatter *formatter; /* the formatter object */
 
   /* open the output file */
   output_filename = malloc (strlen (input_filename) + 5);
@@ -169,13 +167,12 @@ void tinybasic_output_lst (ProgramNode *program) {
   if ((output = fopen (output_filename, "w"))) {
 
     /* write to the output file */
-    program_line = program->first;
-    while (program_line) {
-      if ((text = listing_line_output (program_line, errors))) {
-        fprintf (output, "%s", text);
-        free (text);
-      }
-      program_line = program_line->next;
+    formatter = new_Formatter (errors);
+    if (formatter) {
+      formatter->generate (formatter, program);
+      if (formatter->output)
+        fprintf (output, "%s", formatter->output);
+      formatter->destroy (formatter);
     }
     fclose (output);
   }
