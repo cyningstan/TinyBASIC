@@ -161,25 +161,36 @@ void tinybasic_output_lst (ProgramNode *program) {
   char *output_filename; /* the output filename */
   Formatter *formatter; /* the formatter object */
 
-  /* open the output file */
+  /* ascertain the output filename */
   output_filename = malloc (strlen (input_filename) + 5);
-  sprintf (output_filename, "%s.lst", input_filename);
-  if ((output = fopen (output_filename, "w"))) {
+  if (output_filename) {
 
-    /* write to the output file */
-    formatter = new_Formatter (errors);
-    if (formatter) {
-      formatter->generate (formatter, program);
-      if (formatter->output)
-        fprintf (output, "%s", formatter->output);
-      formatter->destroy (formatter);
+    /* open the output file */
+    sprintf (output_filename, "%s.lst", input_filename);
+    if ((output = fopen (output_filename, "w"))) {
+
+      /* write to the output file */
+      formatter = new_Formatter (errors);
+      if (formatter) {
+        formatter->generate (formatter, program);
+        if (formatter->output)
+          fprintf (output, "%s", formatter->output);
+        formatter->destroy (formatter);
+      }
+      fclose (output);
     }
-    fclose (output);
+
+    /* deal with errors */
+    else
+      errors->set_code (errors, E_FILE_NOT_FOUND, 0, 0);
+
+    /* free the output filename */
+    free (output_filename);
   }
 
-  /* deal with errors */
+  /* deal with out of memory error */
   else
-    errors->set_code (errors, E_FILE_NOT_FOUND, 0, 0);
+    errors->set_code (errors, E_MEMORY, 0, 0);
 }
 
 /*
