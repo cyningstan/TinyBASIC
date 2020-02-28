@@ -27,7 +27,7 @@
     IF F<31 THEN PRINT "Thrust (0-",F,")?"
     INPUT B
     IF B>=0 THEN IF B<=30 THEN IF B<=F THEN GOTO 120
-    GOTO 11
+    GOTO 111
 120 LET W=V-B+5
     LET F=F-B
     LET A=A-(V+W)/2
