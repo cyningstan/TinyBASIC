@@ -12,9 +12,9 @@
     REM B - Bat 2 position
     REM C - Player position
     REM D - Destination to move or shoot
-    REM E - exit 1
-    REM F - exit 2
-    REM G - exit 3
+    REM E - exit 1 from the current cave
+    REM F - exit 2 from the current cave
+    REM G - exit 3 from the current cave
     REM H - Hole 1 (bottomless pit) position
     REM I - Hole 2 (bottomless pit) position
     REM J - Randomised position for player or hazard
