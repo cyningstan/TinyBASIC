@@ -108,18 +108,19 @@
 
     REM --- Identify moves to win or avoid a loss
     REM     Inputs:  D   - player whose pieces we're counting
-    REM     Changes: F   - first square in winning line
+    REM     Changes: E   - number of pieces on line being scanned
+    REM              F   - first square in winning line
     REM              I   - increment of winning line
-    REM              L   - potential winning line
+    REM              L   - line being scanned (counter)
 145 LET L=1
 146 GOSUB 170
-    IF E=2 THEN GOTO 151
-    LET L=L+1
-    IF L<9 THEN GOTO 146
-    RETURN
-151 IF A=0 THEN LET M=F
+    IF E<2 THEN GOTO 152
+    IF A=0 THEN LET M=F
     IF B=0 THEN LET M=F+I
     IF C=0 THEN LET M=F+I+I
+    IF M>0 THEN RETURN
+152 LET L=L+1
+    IF L<9 THEN GOTO 146
     RETURN
 
     REM --- Count a player's pieces on a line
