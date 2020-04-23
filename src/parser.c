@@ -806,7 +806,7 @@ static ProgramLineNode *parse_program_line (void) {
     program_line_destroy (program_line);
     return NULL;
   }
-  if (label_encountered || program_line->statement)
+  if (label_encountered)
     this->priv->last_label = program_line->label;
 
   /* check for a statement and an EOL */
@@ -820,6 +820,8 @@ static ProgramLineNode *parse_program_line (void) {
         this->priv->last_label);
     token->destroy (token);
   }
+  if (program_line->statement)
+    this->priv->last_label = program_line->label;
 
   /* return the program line */
   return program_line;
