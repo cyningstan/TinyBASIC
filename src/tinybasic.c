@@ -41,7 +41,7 @@ static LanguageOptions *loptions; /* language options */
  * params:
  *   char*   option   the option supplied on the command line
  */
-void tinybasic_option_line_numbers (char *option) {
+static void set_line_numbers (char *option) {
   if (! strncmp ("optional", option, strlen (option)))
     loptions->set_line_numbers (loptions, LINE_NUMBERS_OPTIONAL);
   else if (! strncmp ("implied", option, strlen (option)))
@@ -57,7 +57,7 @@ void tinybasic_option_line_numbers (char *option) {
  * params:
  *   char*   option   the option supplied on the command line
  */
-void tinybasic_option_line_limit (char *option) {
+static void set_line_limit (char *option) {
   int limit; /* the limit contained in the option */
   if (sscanf (option, "%d", &limit))
     loptions->set_line_limit (loptions, limit);
@@ -70,7 +70,7 @@ void tinybasic_option_line_limit (char *option) {
  * params:
  *   char*   option   the option supplied on the command line
  */
-void tinybasic_option_comments (char *option) {
+static void set_comments (char *option) {
   if (! strncmp ("enabled", option, strlen (option)))
     loptions->set_comments (loptions, COMMENTS_ENABLED);
   else if (! strncmp ("disabled", option, strlen (option)))
@@ -84,13 +84,26 @@ void tinybasic_option_comments (char *option) {
  * params:
  *   char*   option   the option supplied on the command line
  */
-void tinybasic_option_output (char *option) {
+static void set_output (char *option) {
   if (! strcmp ("lst", option))
     output = OUTPUT_LST;
   else if (! strcmp ("c", option))
     output = OUTPUT_C;
   else if (! strcmp ("exe", option))
     output = OUTPUT_EXE;
+  else
+    errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
+}
+
+/*
+ * Set the GOSUB stack limit option
+ * params:
+ *   char*   option   the option supplied on the command line
+ */
+static void set_gosub_limit (char *option) {
+  int limit; /* the limit contained in the option */
+  if (sscanf (option, "%d", &limit))
+    loptions->set_gosub_limit (loptions, limit);
   else
     errors->set_code (errors, E_BAD_COMMAND_LINE, 0, 0);
 }
@@ -107,7 +120,7 @@ void tinybasic_option_output (char *option) {
  *   int     argc   number of arguments on the command line
  *   char**  argv   the arguments
  */
-void tinybasic_options (int argc, char **argv) {
+static void set_options (int argc, char **argv) {
 
   /* local variables */
   int argn; /* argument number count */
@@ -117,27 +130,33 @@ void tinybasic_options (int argc, char **argv) {
 
     /* scan for line number options */
     if (! strncmp (argv[argn], "-n", 2))
-      tinybasic_option_line_numbers (&argv[argn][2]);
+      set_line_numbers (&argv[argn][2]);
     else if (! strncmp (argv[argn], "--line-numbers=", 15))
-      tinybasic_option_line_numbers (&argv[argn][15]);
+      set_line_numbers (&argv[argn][15]);
 
     /* scan for line number limit */
     else if (! strncmp (argv[argn], "-N", 2))
-      tinybasic_option_line_limit (&argv[argn][2]);
+      set_line_limit (&argv[argn][2]);
     else if (! strncmp (argv[argn], "--line-limit=", 13))
-      tinybasic_option_line_limit (&argv[argn][13]);
+      set_line_limit (&argv[argn][13]);
 
     /* scan for comment option */
     else if (! strncmp (argv[argn], "-o", 2))
-      tinybasic_option_comments (&argv[argn][2]);
+      set_comments (&argv[argn][2]);
     else if (! strncmp (argv[argn], "--comments=", 11))
-      tinybasic_option_comments (&argv[argn][11]);
+      set_comments (&argv[argn][11]);
 
     /* scan for output option */
     else if (! strncmp (argv[argn], "-O", 2))
-      tinybasic_option_output (&argv[argn][2]);
+      set_output (&argv[argn][2]);
     else if (! strncmp (argv[argn], "--output=", 9))
-      tinybasic_option_output (&argv[argn][9]);
+      set_output (&argv[argn][9]);
+
+    /* scan for gosub stack limit */
+    else if (! strncmp (argv[argn], "-g", 2))
+      set_gosub_limit (&argv[argn][2]);
+    else if (! strncmp (argv[argn], "--gosub-limit=", 14))
+      set_gosub_limit (&argv[argn][14]);
 
     /* accept filename */
     else if (! input_filename)
@@ -154,7 +173,7 @@ void tinybasic_options (int argc, char **argv) {
  * params:
  *   ProgramNode*   program   the program to output
  */
-void tinybasic_output_lst (ProgramNode *program) {
+static void output_lst (ProgramNode *program) {
 
   /* local variables */
   FILE *output; /* the output file */
@@ -198,7 +217,7 @@ void tinybasic_output_lst (ProgramNode *program) {
  * params:
  *   ProgramNode*   program   the parsed program
  */
-void tinybasic_output_c (ProgramNode *program) {
+static void output_c (ProgramNode *program) {
 
   /* local variables */
   FILE *output; /* the output file */
@@ -234,7 +253,7 @@ void tinybasic_output_c (ProgramNode *program) {
  * params:
  *   char*   basic_filename   The BASIC program's name
  */
-void tinybasic_output_exe (char *command, char *basic_filename) {
+static void output_exe (char *command, char *basic_filename) {
 
   /* local variables */
   char
@@ -303,7 +322,7 @@ int main (int argc, char **argv) {
   /* interpret the command line arguments */
   errors = new_ErrorHandler ();
   loptions = new_LanguageOptions ();
-  tinybasic_options (argc, argv);
+  set_options (argc, argv);
 
   /* give usage if filename not given */
   if (! input_filename) {
@@ -350,15 +369,15 @@ int main (int argc, char **argv) {
       }
       break;
     case OUTPUT_LST:
-      tinybasic_output_lst (program);
+      output_lst (program);
       break;
     case OUTPUT_C:
-      tinybasic_output_c (program);
+      output_c (program);
       break;
     case OUTPUT_EXE:
       if ((command = getenv ("TBEXE"))) {
-        tinybasic_output_c (program);
-        tinybasic_output_exe (command, input_filename);
+        output_c (program);
+        output_exe (command, input_filename);
       } else
         printf ("TBEXE not set.\n");
       break;

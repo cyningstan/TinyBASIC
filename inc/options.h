@@ -36,9 +36,11 @@ typedef struct language_options {
   void (*set_line_numbers) (LanguageOptions *, LineNumberOption);
   void (*set_line_limit) (LanguageOptions *, int);
   void (*set_comments) (LanguageOptions *, CommentOption);
+  void (*set_gosub_limit) (LanguageOptions *, int);
   LineNumberOption (*get_line_numbers) (LanguageOptions *);
   int (*get_line_limit) (LanguageOptions *);
   CommentOption (*get_comments) (LanguageOptions *);
+  int (*get_gosub_limit) (LanguageOptions *);
   void (*destroy) (LanguageOptions *);
 } LanguageOptions;
 
