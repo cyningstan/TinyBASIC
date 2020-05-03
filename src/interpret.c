@@ -38,6 +38,7 @@ typedef struct interpreter_data {
   ProgramNode *program; /* the program to interpret */
   ProgramLineNode *line; /* current line we're executing */
   GosubStackNode *gosub_stack; /* the top of the GOSUB stack */
+  int gosub_stack_size; /* number of entries on the GOSUB stack */
   int variables [26]; /* the numeric variables */
   int stopped; /* set to 1 when an END is encountered */
   ErrorHandler *errors; /* the error handler */
@@ -292,13 +293,20 @@ void interpret_gosub_statement (GosubStatementNode *gosubn) {
   int label; /* the line label to go to */
 
   /* create the new node on the GOSUB stack */
-  gosub_node = malloc (sizeof (GosubStackNode));
-  gosub_node->program_line = this->priv->line->next;
-  gosub_node->next = this->priv->gosub_stack;
-  this->priv->gosub_stack = gosub_node;
-
+  if (this->priv->gosub_stack_size < this->priv->options->get_gosub_limit
+    (this->priv->options)) {
+    gosub_node = malloc (sizeof (GosubStackNode));
+    gosub_node->program_line = this->priv->line->next;
+    gosub_node->next = this->priv->gosub_stack;
+    this->priv->gosub_stack = gosub_node;
+    ++this->priv->gosub_stack_size;
+  } else
+    this->priv->errors->set_code (this->priv->errors,
+      E_TOO_MANY_GOSUBS, 0, this->priv->line->label);
+  
   /* branch to the subroutine requested */
-  label = interpret_expression (gosubn->label);
+  if (! this->priv->errors->get_code (this->priv->errors))
+    label = interpret_expression (gosubn->label);
   if (! this->priv->errors->get_code (this->priv->errors))
     this->priv->line = find_label (label);
 }
@@ -317,6 +325,7 @@ void interpret_return_statement (void) {
     gosub_node = this->priv->gosub_stack;
     this->priv->gosub_stack = this->priv->gosub_stack->next;
     free (gosub_node);
+    --this->priv->gosub_stack_size;
   }
 
   /* no GOSUBs led here, so raise an error */
@@ -388,7 +397,7 @@ void interpret_input_statement (InputStatementNode *inputn) {
     do {
       value = 10 * value + (ch - '0');
       if (value * sign < -32768 || value * sign > 32767)
-	this->priv->errors->set_code
+        this->priv->errors->set_code
           (this->priv->errors, E_OVERFLOW, 0, this->priv->line->label);
       ch = getchar ();
     } while (ch >= '0' && ch <= '9'
@@ -516,9 +525,10 @@ Interpreter *new_Interpreter (ErrorHandler *errors, LanguageOptions *options) {
 
   /* initialise properties */
   this->priv->gosub_stack = NULL;
+  this->priv->gosub_stack_size = 0;
   this->priv->stopped = 0;
   this->priv->errors = errors;
-  this->priv->options = this->priv->options;
+  this->priv->options = options;
 
   /* return the new object */
   return this;

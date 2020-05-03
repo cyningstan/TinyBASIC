@@ -34,6 +34,7 @@ typedef enum {
   E_DIVIDE_BY_ZERO, /* an attempt to divide by zero */
   E_OVERFLOW, /* integer is out of range */
   E_MEMORY, /* out of memory */
+  E_TOO_MANY_GOSUBS, /* recursive GOSUBs exceeded the stack size */
   E_LAST /* placeholder */
 } ErrorCode;
 
