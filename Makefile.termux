@@ -37,6 +37,7 @@ all: $(TARGETDIR)/$(TARGET)
 
 $(TARGETDIR)/$(TARGET): $(OBJECTS)
 	gcc -o $(TARGETDIR)/$(TARGET) $(OBJECTS)
+	termux-elf-cleaner $(TARGETDIR)/$(TARGET)
 
 $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	gcc $(CFLAGS) $(INC) -c -o $@ $<

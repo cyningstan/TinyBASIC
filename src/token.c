@@ -182,6 +182,7 @@ static void destroy (Token *token) {
  * Constructors
  */
 
+
 /*
  * Token constructor without values to initialise
  * returns:
