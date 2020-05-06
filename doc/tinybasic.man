@@ -18,6 +18,9 @@ No interactive interpreter is provided.
 provides a few additional features. Comments with the \fBREM\fR statement were not part of the original specification, but are allowed here. There is support for optional line numbers, and a configurable upper limit for them. Because not all lines need a number, this manual will refer to them as \'line labels.\' Where the phrase \'line number\' appears, it will refer to the actual line count in the source file, as a text editor would show.
 .SH OPTIONS
 .TP
+.BR \-g " " \fIlimit\fR ", " \-\-gosub-limit\=\fIlimit\fR
+Specifies the maximum depth of subroutine calls for the interpreter. Calling subroutinnes within subroutines to a level deeper than this will result in the "Too many GOSUBs" runtime error. This does not affect compiled code.
+.TP
 .BR \-n " " \fIvalue\fR ", " \-\-line\-numbers\=\fIvalue\fR
 Determines the handling of line labels. An argument of \fBm\fR or \fBmandatory\fR causes \fBtinybasic\fR to require a line label for every program line, in ascending order. An argument of \fBi\fR or \fBimplied\fR causes \fBtinybasic\fR to supply labels internally for each line that lacks them; care must be taken when labelling lines so that there is room for a sequence of numbers between one line label and the next. An argument of \fBo\fR or \fBoptional\fR makes line labels completely optional; those that are supplied need not be in ascending order.
 .TP
@@ -159,8 +162,11 @@ The divisor in an expression was \fB0\fR. If dividing by a variable or an expres
 .TP
 .SS Overflow
 When given as a parse error, there is a value in the program that is outside the range of \fB-32768\fR to \fB32767\fR. When given as a runtime error, an expression in the program or an input from the user has produced a result outside this range.
+.TP
+.SS Too Many GOSUBs
+Subroutines were called to a level deeper than the \fBGOSUB\fR limit allows. Often encountered because of runaway recursion, or because an incorrect label was given in a \fBGOSUB\fR statement causing a subroutine to unintentionally call itself.
 .SH VERSION INFORMATION
-This manual page documents \fBtinybasic\fR, version 1.0.
+This manual page documents \fBtinybasic\fR, version 1.0.3.
 .SH AUTHORS
 Tiny BASIC was originally designed by Dennis Allison. This implementation was written by Damian Gareth Walker.
 .SH EXAMPLE
