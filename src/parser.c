@@ -758,7 +758,7 @@ static StatementNode *parse_statement () {
     default:
       this->priv->errors->set_code
         (this->priv->errors, E_UNRECOGNISED_COMMAND, token->get_line (token),
-	this->priv->last_label);
+        this->priv->last_label);
       token->destroy (token);
   }
 

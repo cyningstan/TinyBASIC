@@ -19,6 +19,8 @@
     REM --- Initialise the random number generator
     PRINT "Think of a number."
     INPUT R
+    IF R<0 THEN LET R=0
+    IF R>4095 THEN LET R=4095
 
     REM --- Initialise the game
     GOSUB 200

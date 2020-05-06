@@ -624,8 +624,6 @@ static void generate_includes (void) {
   /* build up includes and defines */
   strcpy (include_text, "#include <stdio.h>\n");
   strcat (include_text, "#include <stdlib.h>\n");
-  sprintf (define_text, "#define E_OVERFLOW %d\n", E_OVERFLOW);
-  strcat (include_text, define_text);
   sprintf (define_text, "#define E_RETURN_WITHOUT_GOSUB %d\n",
     E_RETURN_WITHOUT_GOSUB);
   strcat (include_text, define_text);
@@ -646,7 +644,7 @@ static void generate_variables (void) {
   /* local variables */
   int vcount; /* variable counter */
   char
-    var_text [6], /* individual variable text */
+    var_text [12], /* individual variable text */
     declaration[60]; /* declaration text */
 
   /* build the declaration */
@@ -656,7 +654,7 @@ static void generate_variables (void) {
       if (*declaration)
         sprintf (var_text, ",%c", 'a' + vcount);
       else
-        sprintf (var_text, "int %c", 'a' + vcount);
+        sprintf (var_text, "short int %c", 'a' + vcount);
       strcat (declaration, var_text);
     }
   }
@@ -681,8 +679,8 @@ static void generate_bas_input (void) {
   char function_text[1024]; /* the entire function */
 
   /* construct the function text */
-  strcpy (function_text, "int bas_input (void) {\n");
-  strcat (function_text, "int ch, sign, value;\n");
+  strcpy (function_text, "short int bas_input (void) {\n");
+  strcat (function_text, "short int ch, sign, value;\n");
   strcat (function_text, "do {\n");
   strcat (function_text, "if (ch == '-') sign = -1; else sign = 1;\n");
   strcat (function_text, "ch = getchar ();\n");
@@ -690,8 +688,6 @@ static void generate_bas_input (void) {
   strcat (function_text, "value = 0;\n");
   strcat (function_text, "do {\n");
   strcat (function_text, "value = 10 * value + (ch - '0');\n");
-  strcat (function_text, "if (value * sign < -32768 || value * sign > 32767)\n");
-  strcat (function_text, "exit (E_OVERFLOW);\n");
   strcat (function_text, "ch = getchar ();\n");
   strcat (function_text, "} while (ch >= '0' && ch <= '9');\n");
   strcat (function_text, "return sign * value;\n");
