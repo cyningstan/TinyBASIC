@@ -518,7 +518,7 @@ Interpreter *new_Interpreter (ErrorHandler *errors, LanguageOptions *options) {
   this->priv->gosub_stack = NULL;
   this->priv->stopped = 0;
   this->priv->errors = errors;
-  this->priv->options = this->priv->options;
+  this->priv->options = options;
 
   /* return the new object */
   return this;
