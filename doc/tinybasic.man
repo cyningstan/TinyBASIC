@@ -166,7 +166,7 @@ When given as a parse error, there is a value in the program that is outside the
 .SS Too Many GOSUBs
 Subroutines were called to a level deeper than the \fBGOSUB\fR limit allows. Often encountered because of runaway recursion, or because an incorrect label was given in a \fBGOSUB\fR statement causing a subroutine to unintentionally call itself.
 .SH VERSION INFORMATION
-This manual page documents \fBtinybasic\fR, version 1.0.3.
+This manual page documents \fBtinybasic\fR, version 1.0.4.
 .SH AUTHORS
 Tiny BASIC was originally designed by Dennis Allison. This implementation was written by Damian Gareth Walker.
 .SH EXAMPLE

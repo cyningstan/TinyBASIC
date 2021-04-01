@@ -34,8 +34,8 @@ typedef struct {
 
 
 /* Convenience variables */
-Token *this; /* the token object */
-Private *data; /* the private data */
+static Token *this; /* the token object */
+static Private *data; /* the private data */
 
 
 /*

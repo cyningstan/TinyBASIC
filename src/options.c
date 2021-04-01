@@ -28,8 +28,8 @@ typedef struct {
 } Private;
 
 /* convenience variables */
-LanguageOptions *this; /* object being worked on */
-Private *data; /* the object's private data */
+static LanguageOptions *this; /* object being worked on */
+static Private *data; /* the object's private data */
 
 
 /*
